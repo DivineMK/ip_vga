@@ -1,0 +1,15 @@
+bender
+.bender/
+Bender.lock
+vsim/compile.tcl
+vsim/modelsim.ini
+vsim/transcript
+vsim/vsim.wlf
+vsim/work
+vsim/wlf*
+vsim/*.txt
+vsim/*.bmp
+test/*.bmp
+test/*.mem
+# test verilator locally
+verilator/
