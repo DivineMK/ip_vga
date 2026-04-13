@@ -17,13 +17,13 @@ dependencies:
   register_interface : { git: "https://github.com/pulp-platform/register_interface", version: 0.4.2 }
 
 sources:
-  - src/axi_vga_reg_pkg.sv
-  - src/axi_vga_reg_top.sv
-  - src/axi_vga_timing_fsm.sv
-  - src/axi_vga_fetcher.sv
-  - src/axi_vga.sv
+  - src/ip_vga_reg_pkg.sv
+  - src/ip_vga_reg_top.sv
+  - src/ip_vga_timing_fsm.sv
+  - src/ip_vga_fetcher.sv
+  - src/ip_vga.sv
 
   - target: test
     files:
-      - test/tb_axi_vga_pkg.sv
-      - test/tb_axi_vga.sv
+      - test/tb_ip_vga_pkg.sv
+      - test/tb_ip_vga.sv

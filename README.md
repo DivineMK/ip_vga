@@ -1,14 +1,8 @@
-# AXI VGA
+# VGA text mode
 
-This repository contains a free and open-source, fully synthesizable VGA controller requesting pixel data directly using configurable AXI bursts. It is part of the PULP ecosystem.
+This repository contains a free and open-source, fully synthesizable VGA controller specifically for VGA text mode, supporting small design. It is part of the PULP ecosystem.
 
 ## Caveats
-
-While future improvements may relax these constraints, currently:
-
-* We only support AXI data widths of 32b to 1024b.
-* The pixel size in memory must be equal to the sum of the hardware channel widths.
-* The pixel size in memory must be a divisor of the data bus width.
 
 ## Reconfiguring AXI VGA
 

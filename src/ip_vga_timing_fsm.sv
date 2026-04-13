@@ -7,38 +7,43 @@
 
 // Simple VGA IP capable of drawing frames from an external framebuffer
 
-module axi_vga_timing_fsm #(
-  parameter int unsigned RedWidth     = 5,
-  parameter int unsigned GreenWidth   = 6,
-  parameter int unsigned BlueWidth    = 5,
-  parameter int unsigned HCountWidth  = 32,
-  parameter int unsigned VCountWidth  = 32
-)(
-  input logic                     clk_i,
-  input logic                     rst_ni,
+module ip_vga_timing_fsm #(
+    parameter int unsigned RedWidth    = 5,
+    parameter int unsigned GreenWidth  = 6,
+    parameter int unsigned BlueWidth   = 5,
+    parameter int unsigned HCountWidth = 32,
+    parameter int unsigned VCountWidth = 32
+) (
+    input logic clk_i,
+    input logic rst_ni,
 
-  input logic                     fsm_en_i,
-  input axi_vga_reg_pkg::axi_vga_reg2hw_t reg2hw_i,
+    input logic                             fsm_en_i,
+    input axi_vga_reg_pkg::axi_vga_reg2hw_t reg2hw_i,
 
-  // Data input
-  input  logic [RedWidth-1:0]     red_i,
-  input  logic [GreenWidth-1:0]   green_i,
-  input  logic [BlueWidth-1:0]    blue_i,
-  input  logic                    valid_i,
-  output logic                    ready_o,
+    // Data input
+    input  logic [  RedWidth-1:0] red_i,
+    input  logic [GreenWidth-1:0] green_i,
+    input  logic [ BlueWidth-1:0] blue_i,
+    input  logic                  valid_i,
+    output logic                  ready_o,
 
-  // Interrupts
-  output logic frame_done_o,
-  output logic vsync_start_o,
+    // Interrupts
+    output logic frame_done_o,
+    output logic vsync_start_o,
 
-  // VGA output
-  output logic                    hsync_o,
-  output logic                    vsync_o,
-  output logic [RedWidth-1:0]     red_o,
-  output logic [GreenWidth-1:0]   green_o,
-  output logic [BlueWidth-1:0]    blue_o
+    // VGA output
+    output logic                  hsync_o,
+    output logic                  vsync_o,
+    output logic [  RedWidth-1:0] red_o,
+    output logic [GreenWidth-1:0] green_o,
+    output logic [ BlueWidth-1:0] blue_o
 );
-  typedef enum logic [1:0] {VISIBLE, FRONT_PORCH, SYNC, BACK_PORCH} axi_vga_state_t;
+  typedef enum logic [1:0] {
+    VISIBLE,
+    FRONT_PORCH,
+    SYNC,
+    BACK_PORCH
+  } axi_vga_state_t;
 
   logic [HCountWidth-1:0] hcounter_q, hcounter_d;
   logic [VCountWidth-1:0] vcounter_q, vcounter_d;
@@ -53,11 +58,11 @@ module axi_vga_timing_fsm #(
   logic [31:0] v_visible_size, v_front_size, v_sync_size, v_back_size;
 
   // Static assignments
-  assign red_o    = (visible & valid_i) ? red_i : 'b0;
-  assign green_o  = (visible & valid_i) ? green_i : 'b0;
-  assign blue_o   = (visible & valid_i) ? blue_i :'b0;
-  assign hsync_o  = reg2hw_i.control.hsync_pol.q ? hstate_q == SYNC : ~(hstate_q == SYNC);
-  assign vsync_o  = reg2hw_i.control.vsync_pol.q ? vstate_q == SYNC : ~(vstate_q == SYNC);
+  assign red_o = (visible & valid_i) ? red_i : 'b0;
+  assign green_o = (visible & valid_i) ? green_i : 'b0;
+  assign blue_o = (visible & valid_i) ? blue_i : 'b0;
+  assign hsync_o = reg2hw_i.control.hsync_pol.q ? hstate_q == SYNC : ~(hstate_q == SYNC);
+  assign vsync_o = reg2hw_i.control.vsync_pol.q ? vstate_q == SYNC : ~(vstate_q == SYNC);
 
   assign visible = (hstate_q == VISIBLE) & (vstate_q == VISIBLE);
 
@@ -68,14 +73,14 @@ module axi_vga_timing_fsm #(
   assign fsm_en = reg2hw_i.control.enable.q & fsm_en_i;
 
   assign h_visible_size = reg2hw_i.hori_visible_size.q;
-  assign h_front_size   = reg2hw_i.hori_front_porch_size.q;
-  assign h_sync_size    = reg2hw_i.hori_sync_size.q;
-  assign h_back_size    = reg2hw_i.hori_back_porch_size.q;
+  assign h_front_size = reg2hw_i.hori_front_porch_size.q;
+  assign h_sync_size = reg2hw_i.hori_sync_size.q;
+  assign h_back_size = reg2hw_i.hori_back_porch_size.q;
 
   assign v_visible_size = reg2hw_i.vert_visible_size.q;
-  assign v_front_size   = reg2hw_i.vert_front_porch_size.q;
-  assign v_sync_size    = reg2hw_i.vert_sync_size.q;
-  assign v_back_size    = reg2hw_i.vert_back_porch_size.q;
+  assign v_front_size = reg2hw_i.vert_front_porch_size.q;
+  assign v_sync_size = reg2hw_i.vert_sync_size.q;
+  assign v_back_size = reg2hw_i.vert_back_porch_size.q;
 
   assign frame_done_o   = (vstate_q == FRONT_PORCH) & (vcounter_q == v_front_size)
                           & (hstate_q == FRONT_PORCH) & (hcounter_q == h_front_size) & fsm_en;
@@ -84,39 +89,39 @@ module axi_vga_timing_fsm #(
 
   // Horizontal FSM
   always_comb begin
-    hcounter_d  = hcounter_q;
-    hstate_d    = hstate_q;
+    hcounter_d = hcounter_q;
+    hstate_d   = hstate_q;
 
 
     if (fsm_en) begin
-      hcounter_d  = hcounter_q - 1;
+      hcounter_d = hcounter_q - 1;
 
       unique case (hstate_q)
         VISIBLE: begin
           if (hcounter_q == 1) begin
             hcounter_d = h_front_size;
-            hstate_d = FRONT_PORCH;
+            hstate_d   = FRONT_PORCH;
           end
         end
 
         FRONT_PORCH: begin
           if (hcounter_q == 1) begin
             hcounter_d = h_sync_size;
-            hstate_d = SYNC;
+            hstate_d   = SYNC;
           end
         end
 
         SYNC: begin
           if (hcounter_q == 1) begin
             hcounter_d = h_back_size;
-            hstate_d = BACK_PORCH;
+            hstate_d   = BACK_PORCH;
           end
         end
 
         BACK_PORCH: begin
           if (hcounter_q == 1) begin
-            hcounter_d  = h_visible_size;
-            hstate_d    = VISIBLE;
+            hcounter_d = h_visible_size;
+            hstate_d   = VISIBLE;
           end
         end
 
@@ -133,38 +138,38 @@ module axi_vga_timing_fsm #(
 
   // Vertical FSM
   always_comb begin
-    vstate_d    = vstate_q;
-    vcounter_d  = vcounter_q;
+    vstate_d   = vstate_q;
+    vcounter_d = vcounter_q;
 
     if (fsm_en && hstate_q == BACK_PORCH && hcounter_q == 1) begin
-      vcounter_d  = vcounter_q - 1;
+      vcounter_d = vcounter_q - 1;
 
       unique case (vstate_q)
         VISIBLE: begin
           if (vcounter_q == 1) begin
             vcounter_d = v_front_size;
-            vstate_d = FRONT_PORCH;
+            vstate_d   = FRONT_PORCH;
           end
         end
 
         FRONT_PORCH: begin
           if (vcounter_q == 1) begin
             vcounter_d = v_sync_size;
-            vstate_d = SYNC;
+            vstate_d   = SYNC;
           end
         end
 
         SYNC: begin
           if (vcounter_q == 1) begin
             vcounter_d = v_back_size;
-            vstate_d = BACK_PORCH;
+            vstate_d   = BACK_PORCH;
           end
         end
 
         BACK_PORCH: begin
           if (vcounter_q == 1) begin
-            vcounter_d  = v_visible_size;
-            vstate_d    = VISIBLE;
+            vcounter_d = v_visible_size;
+            vstate_d   = VISIBLE;
           end
         end
 
@@ -181,16 +186,16 @@ module axi_vga_timing_fsm #(
 
   // Flip-Flops
   always_ff @(posedge clk_i, negedge rst_ni) begin
-    if(!rst_ni) begin
-      hcounter_q  <= 'd1;
-      vcounter_q  <= 'd1;
-      hstate_q    <= FRONT_PORCH;
-      vstate_q    <= FRONT_PORCH;
+    if (!rst_ni) begin
+      hcounter_q <= 'd1;
+      vcounter_q <= 'd1;
+      hstate_q   <= FRONT_PORCH;
+      vstate_q   <= FRONT_PORCH;
     end else begin
-      hcounter_q  <= hcounter_d;
-      vcounter_q  <= vcounter_d;
-      hstate_q    <= hstate_d;
-      vstate_q    <= vstate_d;
+      hcounter_q <= hcounter_d;
+      vcounter_q <= vcounter_d;
+      hstate_q   <= hstate_d;
+      vstate_q   <= vstate_d;
     end
   end
 

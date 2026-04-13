@@ -11,5 +11,7 @@ vsim/*.txt
 vsim/*.bmp
 test/*.bmp
 test/*.mem
-# test verilator locally
+# test locally
 verilator/
+*/*axi_vga.sv
+*/*axi_vga*.sv
