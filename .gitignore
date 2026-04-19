@@ -12,6 +12,7 @@ vsim/*.bmp
 test/*.bmp
 test/*.mem
 # test locally
-verilator/
+verilator/*
+!verilator/*.sh
 */*axi_vga.sv
 */*axi_vga*.sv

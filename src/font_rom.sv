@@ -1,9 +1,11 @@
+import ip_vga_config_pkg::*;
+
 module font_rom #(
-    parameter int unsigned FontSize = 256,
+    parameter int unsigned FontSize = FontSize,
     parameter int unsigned FontAddrWidth = $clog2(FontSize),
-    parameter int unsigned FontWidth = 8,
-    parameter int unsigned FontHeight = 8,
-    parameter int unsigned FontDataWidth = FontWidth * FontHeight
+    parameter int unsigned FontWidth = FontWidth,
+    parameter int unsigned FontHeight = FontHeight,
+    parameter int unsigned FontDataWidth = FontDataWidth
 ) (
     input  logic                     clk_i,
     input  logic                     rst_ni,
@@ -11,7 +13,7 @@ module font_rom #(
     output logic [FontDataWidth-1:0] rsp_data_o
 );
 
-  logic [FontSize-1:0][FontDataWidth-1:0] font;
+  logic [0:FontSize-1][FontDataWidth-1:0] font;
   logic [FontAddrWidth-1:0] req_d, req_q;
 
   always_comb begin : font_init
