@@ -24,6 +24,5 @@ sources:
 
   - target: test
     files:
-      - test/tb_ip_vga_config_pkg.sv
       - test/tb_ip_vga_pkg.sv
       - test/tb_ip_vga.sv

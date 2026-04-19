@@ -16,3 +16,4 @@ verilator/*
 !verilator/*.sh
 */*axi_vga.sv
 */*axi_vga*.sv
+*.fst

@@ -8,15 +8,18 @@ package ip_vga_config_pkg;
   localparam int unsigned LineCharWidth = 80;
   localparam int unsigned LineCharHeight = 25;
 
-  localparam int unsigned HoriVisibleSize = FontWidth * LineCharWidth;
-  localparam int unsigned HoriFrontPorchSize = FontWidth * LineCharWidth;
-  localparam int unsigned HoriBackPorchSize = FontWidth * LineCharWidth;
-  localparam int unsigned HoriSyncSize = FontWidth * LineCharWidth;
+  localparam int unsigned FrameWidth = FontWidth * LineCharWidth;
+  localparam int unsigned FrameHeight = FontHeight * LineCharHeight;
 
-  localparam int unsigned VertVisibleSize = FontHeight * LineCharHeight;
-  localparam int unsigned VertFrontPorchSize = FontWidth * LineCharWidth;
-  localparam int unsigned VertBackPorchSize = FontWidth * LineCharWidth;
-  localparam int unsigned VertSyncSize = FontWidth * LineCharWidth;
+  localparam int unsigned HoriVisibleSize = FrameWidth;
+  localparam int unsigned HoriFrontPorchSize = 32'h00000010;
+  localparam int unsigned HoriBackPorchSize = 32'h00000060;
+  localparam int unsigned HoriSyncSize = 32'h00000060;
+
+  localparam int unsigned VertVisibleSize = FrameHeight;
+  localparam int unsigned VertFrontPorchSize = 32'h0000000A;
+  localparam int unsigned VertBackPorchSize = 32'h00000021;
+  localparam int unsigned VertSyncSize = 32'h00000002;
 
   localparam int unsigned ClkDiv = 2;
   localparam logic ControlEnable = 1;

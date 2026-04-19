@@ -133,7 +133,7 @@ module tb_ip_vga;
 
   initial begin
     $dumpfile("ip_vga.fst");
-    $dumpvars(0, ip_vga);
+    $dumpvars(0, i_ip_vga);
 
     #(3 * ClkPeriod * ClkDiv * FullRenderHeight * FullRenderWidth);
     #(5000 * ClkPeriod);
@@ -182,7 +182,7 @@ module tb_ip_vga;
         g8 = framebuffer[i][j].g << (8 - GreenWidth);
         b8 = framebuffer[i][j].b << (8 - BlueWidth);
         $fwrite(fd, "%c%c%c", b8, g8, r8);
-        $fwrite(fd_debug, "(row=%0d, col=%0d): R=%0d, G=%0d, B=%0d\n", FrameHeight - 1 - i, j, r8,
+        $fwrite(fd_debug, "(row=%0d, col=%0d): R=%0u, G=%0u, B=%0u\n", FrameHeight - 1 - i, j, r8,
                 g8, b8);
       end
       for (j = 0; j < row_pad; j++) $fwrite(fd, "%c", 8'h00);

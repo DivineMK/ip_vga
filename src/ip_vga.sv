@@ -26,8 +26,8 @@ module ip_vga #(
     input logic test_mode_en_i,
 
     // Regbus config ports
-    input  reg_req_t  reg_req_i,
-    output reg_resp_t reg_rsp_o,
+    // input  reg_req_t  reg_req_i,
+    // output reg_resp_t reg_rsp_o,
 
     // Interrupts
     output logic frame_done_o,  // timing FSM signals end of visible area
@@ -59,6 +59,31 @@ module ip_vga #(
   // Cycle counter to scale the incoming clock
   assign clk_cnt_d = (clk_cnt_q < (clk_div - 1)) ? clk_cnt_q + 8'b0000_0001 : 8'b0;
 
+  // Input: visible, vsync_start, valid
+  // Output: r,g,b, ready
+  //
+  // localparam TB_LINEBUF = reg2hw.hori_visible_size.q / 8;
+  logic [LineCharWidth-1:0][15:0] textbuffer_linebuf;
+  logic [1:0][7:0] bitmap_buffer_d, bitmap_buffer_q;
+  logic [31:0] pixel_horz_q, pixel_horz_d, pixel_vert_q, pixel_vert_d;
+  logic [28:0] char_horz, char_vert;
+
+  // font request
+  logic [7:0] font_req_idx_d, font_req_idx_q;  // max = line_char_width = 80
+  logic [FontAddrWidth-1:0] font_req;
+  // font response
+  logic [FontDataWidth-1:0] font_rsp;
+
+  assign char_horz = pixel_horz_q >> $clog2(FontWidth);
+  assign char_vert = pixel_vert_q >> $clog2(FontHeight);
+
+  typedef enum logic [1:0] {
+    INIT,
+    REQ,
+    IDLE
+  } font_state_t;
+
+  font_state_t font_state_q, font_state_d;
   // Regbus register interface
   // ip_vga_reg_top #(
   //     .reg_req_t(reg_req_t),
@@ -120,44 +145,13 @@ module ip_vga #(
       .req_addr_i(font_req),
       .rsp_data_o(font_rsp)
   );
-  //   Input: visible, vsync_start, valid
-  // Output: r,g,b, ready
-  //
-  // // tb_linebuffer[char_horz][15:7] = config_bits
-  // {r,g,b} = color_func(tb_linebuffer[char_horz][15:7], bitmap_buffer[char_horz[0]][pixel_horz_q[2:0]]) 
-  // localparam TB_LINEBUF = reg2hw.hori_visible_size.q / 8;
-  logic [LineCharWidth-1:0][15:0] textbuffer_linebuf;
-  logic [1:0][7:0] bitmap_buffer;
-  logic [31:0] pixel_horz_q, pixel_horz_d, pixel_vert_q, pixel_vert_d;
-  logic [28:0] char_horz, char_vert;
 
-  // font request
-  logic [7:0] font_req_idx_d, font_req_idx_q;  // max = line_char_width = 80
-  logic [FontAddrWidth-1:0] font_req;
-  // font response
-  logic [FontDataWidth-1:0] font_rsp;
-
-  assign char_horz = pixel_horz_q >> $clog2(FontWidth);
-  assign char_vert = pixel_vert_q >> $clog2(FontHeight);
-
-  typedef enum logic [2:0] {
-    INIT,
-    REQ,
-    IDLE
-  } font_state_t;
-
-  font_state_t font_state_q, font_state_d;
-
-  always_comb begin : textbuffer_linebuf_init
-    for (int i = 0; i < 80; i += 2) begin
-      textbuffer_linebuf[i]   = 16'h0000;
-      textbuffer_linebuf[i+1] = 16'h0001;
-    end
-  end
+  assign valid = 1'b1;  // TODO
 
   always_comb begin : pixel_fsm
     pixel_horz_d = pixel_horz_q;
     pixel_vert_d = pixel_vert_q;
+
     if (ready) begin
       pixel_horz_d = pixel_horz_q + 1;
       if (pixel_horz_d == HoriVisibleSize) begin
@@ -170,8 +164,19 @@ module ip_vga #(
     end
   end
 
+  always_comb begin : textbuffer_linebuf_init
+    for (int i = 0; i < 80; i += 2) begin
+      textbuffer_linebuf[i]   = 16'h0000;
+      textbuffer_linebuf[i+1] = 16'h0001;
+    end
+  end
+
   always_comb begin : font_fsm
-    font_req = textbuffer_linebuf[font_req_idx_q];
+    font_req = textbuffer_linebuf[font_req_idx_q][7:0];
+    font_req_idx_d = font_req_idx_q;
+    font_state_d = font_state_q;
+    bitmap_buffer_d[font_req_idx_q[0]] = bitmap_buffer_q[font_req_idx_q[0]];
+
     unique case (font_state_q)
       INIT: begin
         font_req_idx_d = 0;
@@ -179,7 +184,7 @@ module ip_vga #(
       end
 
       REQ: begin
-        bitmap_buffer[font_req_idx_q[0]] = font_rsp[pixel_vert_q[3:0]];
+        bitmap_buffer_d[font_req_idx_q[0]] = font_rsp[pixel_vert_q[2:0]*8+:8];
         font_state_d = IDLE;
       end
 
@@ -190,22 +195,44 @@ module ip_vga #(
           font_state_d = REQ;
         end
       end
+
+      default: begin
+        font_state_d = INIT;
+      end
     endcase
   end
 
-  assign {red, green, blue} = (bitmap_buffer[char_horz[0]][pixel_horz_q[2:0]] == 1) ? 16'hFFFF : 16'h0000;
+  assign {red, green, blue} = (bitmap_buffer_q[char_horz[0]][pixel_horz_q[2:0]] == 1) ? 16'hFFFF : 16'h0;
 
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if (~rst_ni) begin
-      pixel_horz_q   <= 0;
-      pixel_vert_q   <= 0;
-      font_req_idx_q <= 0;
-      font_state_q   <= INIT;
+      foreach (bitmap_buffer_q[i]) begin
+        foreach (bitmap_buffer_q[i][j]) begin
+          bitmap_buffer_q[i][j] <= 'b0;
+        end
+      end
     end else begin
-      pixel_horz_q   <= pixel_horz_d;
-      pixel_vert_q   <= pixel_vert_d;
+      foreach (bitmap_buffer_q[i]) begin
+        foreach (bitmap_buffer_q[i][j]) begin
+          bitmap_buffer_q[i][j] <= bitmap_buffer_d[i][j];
+        end
+      end
+    end
+  end
+
+  always_ff @(posedge clk_i, negedge rst_ni) begin
+    if (~rst_ni) begin
+      clk_cnt_q <= 'b0;
+      pixel_horz_q <= 'b0;
+      pixel_vert_q <= 'b0;
+      font_req_idx_q <= 'b0;
+      font_state_q <= INIT;
+    end else begin
+      clk_cnt_q <= clk_cnt_d;
+      pixel_horz_q <= pixel_horz_d;
+      pixel_vert_q <= pixel_vert_d;
       font_req_idx_q <= font_req_idx_d;
-      font_state_q   <= font_state_d;
+      font_state_q <= font_state_d;
     end
   end
 endmodule
