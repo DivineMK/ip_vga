@@ -150,7 +150,7 @@ module tb_ip_vga;
   task write_frame_to_bmp(string file);
     automatic int fd, fd_debug;
     automatic int i, j;
-    automatic byte r8, g8, b8;
+    automatic bit[7:0] r8, g8, b8;
     automatic int row_pad = (4 - (FrameWidth * 3) % 4) % 4;  // pad row to 4-byte aligned
     automatic int filesize = 54 + (FrameWidth * 3 + row_pad) * FrameHeight;
 
@@ -182,7 +182,7 @@ module tb_ip_vga;
         g8 = framebuffer[i][j].g << (8 - GreenWidth);
         b8 = framebuffer[i][j].b << (8 - BlueWidth);
         $fwrite(fd, "%c%c%c", b8, g8, r8);
-        $fwrite(fd_debug, "(row=%0d, col=%0d): R=%0u, G=%0u, B=%0u\n", FrameHeight - 1 - i, j, r8,
+        $fwrite(fd_debug, "(row=%0d, col=%0d): R=%0d, G=%0d, B=%0d\n", FrameHeight - 1 - i, j, r8,
                 g8, b8);
       end
       for (j = 0; j < row_pad; j++) $fwrite(fd, "%c", 8'h00);
