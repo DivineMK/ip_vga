@@ -1,8 +1,0 @@
-%Error-UNSUPPORTED: /foss/designs/.bender/git/checkouts/tech_cells_generic-fb9f84c516307ee3/src/deprecated/pad_functional.sv:44:10: Unsupported: Verilog 1995 gate primitive: pmos
-   44 |   rpmos  (PAD, PAD_wi, 1'b0);
-      |          ^
-                    ... For error description see https://verilator.org/warn/UNSUPPORTED?v=5.044
-%Error-UNSUPPORTED: /foss/designs/.bender/git/checkouts/tech_cells_generic-fb9f84c516307ee3/src/deprecated/pad_functional.sv:80:10: Unsupported: Verilog 1995 gate primitive: pmos
-   80 |   rpmos  (PAD, PAD_wi, 1'b0);
-      |          ^
-%Error: Exiting due to 2 error(s)

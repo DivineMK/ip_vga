@@ -7,17 +7,15 @@
 
 set -e
 
-[ ! -z "$VSIM" ] || VSIM=vsim
+source env.sh
 
-bender script vsim -t test -t rtl \
-    --vlog-arg="-svinputport=compat" \
-    --vlog-arg="-timescale 1ns/1ps" \
-    --vlog-arg="-suppress 2583" \
-    > compile.tcl
-echo 'return 0' >> compile.tcl
+[ ! -z "$VERILATOR" ] || VERILATOR=verilator
+
+./run_verilator.sh --flist
+sed -i '/pad_functional\.sv/d' ${PROJ_NAME}.f
 
 cd ../test
-python3 gen_bmp.py  --width 640 --height 480 increment.bmp
-cd ../vsim
-
-$VSIM -c -do 'exit -code [source compile.tcl]'
+python3 gen_bmp.py --width 640 --height 480 increment.bmp
+cd ../verilator
+./run_verilator.sh --build
+./obj_dir/Vtb_${PROJ_NAME}
