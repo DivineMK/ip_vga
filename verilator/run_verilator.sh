@@ -6,14 +6,15 @@
 # Authors:
 # - Thomas Benz     <tbenz@iis.ee.ethz.ch>
 
-set -e # Exit on error
-set -u # Error on undefined vars
+set -e          # Exit on error
+set -u          # Error on undefined vars
+set -o pipefail # Avoid pipe swallowing error
 
 ################
 # Setup
 ################
 # Source environment
-source "env.sh"
+PROJ_NAME=${PROJ_NAME:-"ip_vga"}
 
 ################
 # Helpers
