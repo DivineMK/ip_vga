@@ -135,7 +135,7 @@ module tb_ip_vga;
     $dumpfile("ip_vga.fst");
     $dumpvars(0, i_ip_vga);
 
-    #(3 * ClkPeriod * ClkDiv * FullRenderHeight * FullRenderWidth);
+    #(2 * ClkPeriod * ClkDiv * FullRenderHeight * FullRenderWidth);
     #(5000 * ClkPeriod);
     $info("TIMEOUT");
     $finish();
@@ -265,6 +265,9 @@ module tb_ip_vga;
           framebuffer[row][col].r = i_ip_vga.red_o;
           framebuffer[row][col].g = i_ip_vga.green_o;
           framebuffer[row][col].b = i_ip_vga.blue_o;
+          // if ({i_ip_vga.red_o, i_ip_vga.green_o, i_ip_vga.blue_o} == 16'b0) begin
+          //   $info("Error at time %0t in row %0d col %0d", $time, row, col);
+          // end
           col++;
         end
       end

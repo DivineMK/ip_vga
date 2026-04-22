@@ -1,8 +1,10 @@
 package ip_vga_config_pkg;
   localparam int unsigned FontSize = 256;
-  localparam int unsigned FontAddrWidth = $clog2(FontSize);
   localparam int unsigned FontWidth = 8;
   localparam int unsigned FontHeight = 8;
+  localparam int unsigned FontAddrWidth = $clog2(FontSize);
+  localparam int unsigned FontWidthLog = $clog2(FontWidth);
+  localparam int unsigned FontHeightLog = $clog2(FontHeight);
   localparam int unsigned FontDataWidth = 64;  // font word size
 
   localparam int unsigned LineCharWidth = 80;
