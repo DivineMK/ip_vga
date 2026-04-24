@@ -6,7 +6,7 @@
 # Christopher Reinwardt <creinwar@student.ethz.ch>
 
 package:
-  name: axi_vga
+  name: ip_vga
   authors:
     - "Nicole Narr <narrn@student.ethz.ch>"
     - "Christopher Reinwardt <creinwar@student.ethz.ch>"
@@ -20,6 +20,7 @@ sources:
   - src/ip_vga_config_pkg.sv
   - src/ip_vga_timing_fsm.sv
   - src/font_rom.sv
+  - src/text_buffer.sv
   - src/ip_vga.sv
 
   - target: test

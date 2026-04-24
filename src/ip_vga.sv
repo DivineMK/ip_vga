@@ -63,27 +63,46 @@ module ip_vga #(
   // Output: r,g,b, ready
   //
   // localparam TB_LINEBUF = reg2hw.hori_visible_size.q / 8;
-  logic [LineCharWidth-1:0][15:0] textbuffer_linebuf; // line buffer for fetching char code from text buffer (TB)
+  logic [LineCharWidth-1:0][15:0]
+      textbuffer_linebuf_d,
+      textbuffer_linebuf_q;  // line buffer for fetching char code from text buffer (TB)
   logic [1:0][7:0] bitmap_buffer_d, bitmap_buffer_q;  // bitmap buffer for fetching from font
   logic [31:0] pixel_horz_q, pixel_horz_d, pixel_vert_q, pixel_vert_d;  // coordinate in pixel unit
   logic [28:0] char_horz, char_vert;  // coordinate in char unit
 
+  assign char_horz = pixel_horz_q >> $clog2(FontWidth);
+  assign char_vert = pixel_vert_q >> $clog2(FontHeight);
+
   // font request
-  logic [7:0] font_req_idx_d, font_req_idx_q;  // max = line_char_width = 80
+  logic [$clog2(LineCharWidth)-1:0] font_req_idx_d, font_req_idx_q;  // index for request from textbuffer_linebuf and write to bitmap_buffer
   logic [FontAddrWidth-1:0] font_req;
   // font response
   logic [FontDataWidth-1:0] font_rsp;
   logic [FontWidthLog-1:0] font_sel_q, font_sel_d;  // select correct part from font_rsp
+  logic font_cnt_q, font_cnt_d; // counter to wait for font response
 
-  assign char_horz = pixel_horz_q >> $clog2(FontWidth);
-  assign char_vert = pixel_vert_q >> $clog2(FontHeight);
+  // text buffer (TB) request
+  logic [$clog2(TBSize)-1:0] tb_req_idx_d, tb_req_idx_q; // index for request from TB and write to textbuffer_linebuf
+  logic [TBAddrWidth-1:0] tb_req;
+  // TB response
+  logic [TBDataWidth-1:0] tb_rsp;
+  logic tb_valid, tb_ready;
+  logic tb_cnt_q, tb_cnt_d; // counter to wait for tb response
 
   typedef enum logic {
-    REQ,
-    IDLE
+    FONT_REQ,
+    FONT_IDLE
   } font_state_t;
 
   font_state_t font_state_q, font_state_d;
+
+  typedef enum logic [1:0] {
+    TB_INIT,
+    TB_REQ,
+    TB_IDLE
+  } tb_state_t;
+  tb_state_t tb_state_q, tb_state_d;
+
   // Regbus register interface
   // ip_vga_reg_top #(
   //     .reg_req_t(reg_req_t),
@@ -146,7 +165,21 @@ module ip_vga #(
       .rsp_data_o(font_rsp)
   );
 
+  text_buffer #(
+      .TBSize(TBSize),
+      .TBAddrWidth(TBAddrWidth),
+      .TBDataWidth(TBDataWidth)
+  ) i_text_buffer (
+      .clk_i,
+      .rst_ni,
+      .req_addr_i(tb_req),
+      .rsp_data_o(tb_rsp),
+      .ready_i(tb_ready), // TODO
+      .valid_o(tb_valid)
+  );
+
   assign valid = 1'b1;  // TODO
+  assign tb_ready = 1'b1;
 
   always_comb begin : pixel_fsm
     pixel_horz_d = pixel_horz_q;
@@ -164,57 +197,122 @@ module ip_vga #(
     end
   end
 
-  always_comb begin : textbuffer_linebuf_init
-    for (int i = 80; i > 0; i -= 4) begin
-      textbuffer_linebuf[i]   = 16'h0000;
-      textbuffer_linebuf[i-1] = 16'h0001;
-      textbuffer_linebuf[i-2] = 16'h0002;
-      textbuffer_linebuf[i-3] = 16'h0003;
+  // always_comb begin : textbuffer_linebuf_init
+  //   for (int unsigned i = LineCharWidth/2; i > 0; i -= 4) begin
+  //     textbuffer_linebuf_d[(i-1)*2+:2] = 32'h00000001;
+  //     textbuffer_linebuf_d[(i-2)*2+:2] = 32'h00020003;
+  //     textbuffer_linebuf_d[(i-3)*2+:2] = 32'h00030002;
+  //     textbuffer_linebuf_d[(i-4)*2+:2] = 32'h00010003;
+  //   end
+  //   // for (int i = 80; i > 0; i -= 4) begin
+  //   //   textbuffer_linebuf[i]   = 16'h0000;
+  //   //   textbuffer_linebuf[i-1] = 16'h0001;
+  //   //   textbuffer_linebuf[i-2] = 16'h0002;
+  //   //   textbuffer_linebuf[i-3] = 16'h0003;
+  //   // end
+  // end
+
+  always_comb begin : tb_fsm
+    tb_state_d = tb_state_q;
+    textbuffer_linebuf_d = textbuffer_linebuf_q;
+    tb_req_idx_d = tb_req_idx_q;
+    tb_cnt_d = tb_cnt_q;
+    tb_req = LineCharWidth/2 - 1 - tb_req_idx_q; // tb_req_idx is down counting, tb_req is up counting
+
+    unique case (tb_state_q)
+      TB_INIT: begin
+        // TODO: determine better init condition
+        if (rst_ni) begin
+          tb_cnt_d = '0;
+          tb_state_d = TB_REQ;
+          tb_req_idx_d = LineCharWidth/2 - 1;
+        end
+      end
+
+      TB_REQ: begin
+        // TODO: need valid signal from tb
+        tb_cnt_d = '1;
+        if (tb_cnt_q == '1) begin
+          // tb_rsp contains 2 char code
+          textbuffer_linebuf_d[tb_req_idx_q*2+:2] = tb_rsp;
+          tb_state_d = TB_IDLE;
+        end
+      end
+
+      TB_IDLE: begin
+        if (tb_ready) begin
+          // prefetch 1 line
+          tb_state_d = TB_REQ;
+          tb_req_idx_d = tb_req_idx_q - 1;
+          tb_cnt_d = '0;
+          // when finished prefetching line
+          if (tb_req_idx_q == 0) begin
+            // wait for vsync
+            if (~vsync_start_o) begin
+              tb_state_d = TB_IDLE;
+              tb_req_idx_d = tb_req_idx_q;
+            end else begin
+              tb_req_idx_d = LineCharWidth/2 - 1;
+            end
+          end
+        end
+      end
+
+      // vsim warning
+      default: begin
+        tb_state_d = TB_INIT;
+        tb_req_idx_d = LineCharWidth/2 - 1;
+        tb_cnt_d = '0;
     end
+    endcase
   end
 
-  // TODO: add comments
+  // request from font into bitmap_buffer
   always_comb begin : font_fsm
-    font_req = textbuffer_linebuf[font_req_idx_q][7:0];
+    font_req = textbuffer_linebuf_q[font_req_idx_q][7:0];
     font_req_idx_d = font_req_idx_q;
     font_state_d = font_state_q;
     font_sel_d = font_sel_q;
+    font_cnt_d = font_cnt_q;
     bitmap_buffer_d = bitmap_buffer_q;
 
     unique case (font_state_q)
-      // INIT: begin
-      //   font_req_idx_d = 0;
-      //   font_state_d   = REQ;
-      // end
-
-      REQ: begin
-        bitmap_buffer_d[font_req_idx_q[0]] = font_rsp[font_sel_q*FontWidth+:FontWidth];
-        font_state_d = IDLE;
+      FONT_REQ: begin
+        font_cnt_d = '1;
+        if (font_cnt_q == '1) begin
+          bitmap_buffer_d[font_req_idx_q[0]] = font_rsp[font_sel_q*FontWidth+:FontWidth];
+          font_state_d = FONT_IDLE;
+        end
       end
 
-      IDLE: begin
-        // switch to REQ to prefetch 1 cycle before last pixel of char start
+      FONT_IDLE: begin
+        // switch to FONT_REQ to prefetch 1 cycle before last pixel of char start
+        // 1 cycle for req_idx_q to change, 1 cycle for font to response
+        // depend on clk_div
         if (pixel_horz_q[2:0] == 1 && pixel_horz_d[2:0] == 0) begin
+          font_state_d = FONT_REQ;
+          font_cnt_d = '0;
           // at end of line
-          if (font_req_idx_q == 0) begin
-            font_sel_d = pixel_vert_q[2:0] - 1;  // move font_sel to next char
+          if (char_horz == 0) begin
+            font_sel_d = pixel_vert_q[2:0] - 1;  // move font_sel to next char vertically
             font_req_idx_d = LineCharWidth - 1;
           end else begin
             font_sel_d = pixel_vert_q[2:0];
-            font_req_idx_d = char_horz - 1;
+            font_req_idx_d = char_horz - 1; // prefetch next char horizontally
           end
-          font_state_d = REQ;
         end
       end
 
       default: begin
         font_req_idx_d = LineCharWidth - 1;
-        font_state_d   = REQ;
+        font_state_d   = FONT_REQ;
+        font_cnt_d     = '1;
       end
     endcase
   end
 
-  // TODO: make index clearer
+  // use bitmap_buffer to get current pixel bitmap
+  // TODO: color from config bits
   assign {red, green, blue} = (bitmap_buffer_q[char_horz[0]][pixel_horz_q[2:0]] == 1) ? 16'hFFFF : 16'h0;
 
   always_ff @(posedge clk_i, negedge rst_ni) begin
@@ -222,18 +320,32 @@ module ip_vga #(
       clk_cnt_q <= '0;
       pixel_horz_q <= HoriVisibleSize - 1;
       pixel_vert_q <= VertVisibleSize - 1;
+
       font_req_idx_q <= LineCharWidth - 1;
-      font_state_q <= REQ;
+      font_state_q <= FONT_REQ;
       font_sel_q <= FontHeight - 1;
+      font_cnt_q <= '0;
       bitmap_buffer_q <= '0;
+
+      tb_req_idx_q <= LineCharWidth/2 - 1;
+      tb_state_q <= TB_INIT;
+      tb_cnt_q <= '0;
+      textbuffer_linebuf_q <= '0;
     end else begin
       clk_cnt_q <= clk_cnt_d;
       pixel_horz_q <= pixel_horz_d;
       pixel_vert_q <= pixel_vert_d;
+
       font_req_idx_q <= font_req_idx_d;
       font_state_q <= font_state_d;
       font_sel_q <= font_sel_d;
+      font_cnt_q <= font_cnt_d;
       bitmap_buffer_q <= bitmap_buffer_d;
+
+      tb_req_idx_q <= tb_req_idx_d;
+      tb_state_q <= tb_state_d;
+      tb_cnt_q <= tb_cnt_d;
+      textbuffer_linebuf_q <= textbuffer_linebuf_d;
     end
   end
 endmodule

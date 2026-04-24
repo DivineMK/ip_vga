@@ -10,6 +10,7 @@
 `include "register_interface/typedef.svh"
 
 module tb_ip_vga;
+  import ip_vga_config_pkg::*; // needed in vsim for some reason?
   import tb_ip_vga_pkg::*;
 
   localparam int unsigned ClkPeriod = 20ns;
@@ -128,6 +129,20 @@ module tb_ip_vga;
   //   #(3 * ClkPeriod * cfg.clk_div * FullRenderHeight * FullRenderWidth);
   //   #(5000 * ClkPeriod);
   //   $info("TIMEOUT");
+  //   $finish();
+  // end
+
+  // logic [7:0][15:0] test_tb;
+  // always_comb begin
+  //   for (logic [15:0] i = 0; i < $size(test_tb); i++) begin
+  //     test_tb[i] = i;
+  //   end
+  // end
+  // initial begin
+  //   $info("Starting testbench for ip_vga...");
+  //   for (logic [15:0] i = 0; i < $size(test_tb); i++) begin
+  //     $info("test_tb[%0d] = %0h", i, test_tb[i]);
+  //   end
   //   $finish();
   // end
 
@@ -310,7 +325,10 @@ module tb_ip_vga;
       .vsync_o(),
       .red_o  (),
       .green_o(),
-      .blue_o ()
+      .blue_o (),
+
+      .vsync_start_o(),
+      .frame_done_o()
   );
 
 
