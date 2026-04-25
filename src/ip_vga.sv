@@ -66,7 +66,7 @@ module ip_vga #(
   logic [LineCharWidth-1:0][15:0]
       textbuffer_linebuf_d,
       textbuffer_linebuf_q;  // line buffer for fetching char code from text buffer (TB)
-  logic [1:0][7:0] bitmap_buffer_d, bitmap_buffer_q;  // bitmap buffer for fetching from font
+  logic [1:0][FontWidth-1:0] bitmap_buffer_d, bitmap_buffer_q;  // bitmap buffer for fetching from font
   logic [31:0] pixel_horz_q, pixel_horz_d, pixel_vert_q, pixel_vert_d;  // coordinate in pixel unit
   logic [28:0] char_horz, char_vert;  // coordinate in char unit
 
@@ -84,6 +84,7 @@ module ip_vga #(
   // text buffer (TB) request
   logic [$clog2(TBSize)-1:0] tb_req_idx_d, tb_req_idx_q; // index for request from TB and write to textbuffer_linebuf
   logic [TBAddrWidth-1:0] tb_req;
+  logic [31:0] tb_vert_q, tb_vert_d; // coordinate for request from TB, in char unit vertically
   // TB response
   logic [TBDataWidth-1:0] tb_rsp;
   logic tb_valid, tb_ready;
@@ -217,12 +218,13 @@ module ip_vga #(
     textbuffer_linebuf_d = textbuffer_linebuf_q;
     tb_req_idx_d = tb_req_idx_q;
     tb_cnt_d = tb_cnt_q;
-    tb_req = LineCharWidth/2 - 1 - tb_req_idx_q; // tb_req_idx is down counting, tb_req is up counting
+    tb_vert_d = tb_vert_q;
+    tb_req = tb_vert_q * (LineCharWidth/2) + (LineCharWidth/2 - 1 - tb_req_idx_q); // tb_req_idx is down counting, tb_req is up counting
 
     unique case (tb_state_q)
       TB_INIT: begin
         // TODO: determine better init condition
-        if (rst_ni) begin
+        if (vsync_start_o) begin
           tb_cnt_d = '0;
           tb_state_d = TB_REQ;
           tb_req_idx_d = LineCharWidth/2 - 1;
@@ -247,12 +249,13 @@ module ip_vga #(
           tb_cnt_d = '0;
           // when finished prefetching line
           if (tb_req_idx_q == 0) begin
-            // wait for vsync
-            if (~vsync_start_o) begin
+            // TODO: make condition to start prefetching next line configurable
+            if (pixel_horz_q == 'd2 && pixel_vert_q[FontHeightLog-1:0] == 'd0) begin
+              tb_req_idx_d = LineCharWidth/2 - 1;
+              tb_vert_d = (tb_vert_q == LineCharHeight - 1) ? '0 : tb_vert_q + 1;
+            end else begin
               tb_state_d = TB_IDLE;
               tb_req_idx_d = tb_req_idx_q;
-            end else begin
-              tb_req_idx_d = LineCharWidth/2 - 1;
             end
           end
         end
@@ -329,6 +332,7 @@ module ip_vga #(
 
       tb_req_idx_q <= LineCharWidth/2 - 1;
       tb_state_q <= TB_INIT;
+      tb_vert_q <= '0;
       tb_cnt_q <= '0;
       textbuffer_linebuf_q <= '0;
     end else begin
@@ -344,6 +348,7 @@ module ip_vga #(
 
       tb_req_idx_q <= tb_req_idx_d;
       tb_state_q <= tb_state_d;
+      tb_vert_q <= tb_vert_d;
       tb_cnt_q <= tb_cnt_d;
       textbuffer_linebuf_q <= textbuffer_linebuf_d;
     end

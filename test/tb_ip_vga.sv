@@ -132,16 +132,32 @@ module tb_ip_vga;
   //   $finish();
   // end
 
-  // logic [7:0][15:0] test_tb;
+  // logic [TBSize-1:0][31:0] tb;
   // always_comb begin
-  //   for (logic [15:0] i = 0; i < $size(test_tb); i++) begin
-  //     test_tb[i] = i;
+  //   for (logic [15:0] i = 0; i < LineCharHeight; i += 2) begin
+  //     for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 4) begin
+  //       // tb[i*LineCharWidth/2+(j+0)] = {{12'd0, i[3:0]}, {12'd0, j[3:0]}};
+  //       tb[i*LineCharWidth/2+(j+0)] = 32'h00010002;
+  //       tb[i*LineCharWidth/2+(j+1)] = 32'h00020003;
+  //       tb[i*LineCharWidth/2+(j+2)] = 32'h00030002;
+  //       tb[i*LineCharWidth/2+(j+3)] = 32'h00010000;
+  //     end
+  //   end
+  //
+  //   for (logic [15:0] i = 1; i < LineCharHeight; i += 2) begin
+  //     for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 4) begin
+  //       tb[i*LineCharWidth/2+(j+0)] = 32'h00000000;
+  //       tb[i*LineCharWidth/2+(j+1)] = 32'h00030003;
+  //       tb[i*LineCharWidth/2+(j+2)] = 32'h00020002;
+  //       tb[i*LineCharWidth/2+(j+3)] = 32'h00010001;
+  //     end
   //   end
   // end
+  //
   // initial begin
   //   $info("Starting testbench for ip_vga...");
-  //   for (logic [15:0] i = 0; i < $size(test_tb); i++) begin
-  //     $info("test_tb[%0d] = %0h", i, test_tb[i]);
+  //   for (logic [15:0] i = 0; i < 16; i++) begin
+  //     $info("tb[%0d] = %0h", i, tb[i]);
   //   end
   //   $finish();
   // end
