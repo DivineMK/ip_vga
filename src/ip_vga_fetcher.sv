@@ -57,6 +57,7 @@ module ip_vga_fetcher #(
       tb_req_idx_d, tb_req_idx_q;  // index for request from TB and write to textbuffer_linebuf
   obi_req_t obi_tb_req;
   logic [31:0] tb_vert_q, tb_vert_d;  // coordinate for request from TB, in char unit vertically
+  logic tb_last_d, tb_last_q; // flag to process last char of line
   // TB response
   obi_rsp_t obi_tb_rsp;
   logic tb_valid;
@@ -69,7 +70,7 @@ module ip_vga_fetcher #(
   font_state_t font_state_q, font_state_d;
 
   typedef enum logic [1:0] {
-    TB_INIT,
+    TB_LAST,
     TB_REQ,
     TB_IDLE
   } tb_state_t;
@@ -117,32 +118,23 @@ module ip_vga_fetcher #(
     textbuffer_linebuf_d = textbuffer_linebuf_q;
     tb_req_idx_d = tb_req_idx_q;
     tb_vert_d = tb_vert_q;
-    obi_tb_req.a.addr = tb_vert_q * (LineCharWidth/2) 
+    tb_last_d = tb_last_q;
+    obi_tb_req.a.addr[ObiAddrWidth-1:2] = tb_vert_q * (LineCharWidth/2) 
                 + (LineCharWidth/2 - 1 - tb_req_idx_q); // tb_req_idx is down counting, tb_req is up counting
     obi_tb_req.req = '0;  // default to prefetch
 
     unique case (tb_state_q)
       TB_REQ: begin
-        // when finished prefetching line
         // TODO: response delay handling
-        if (tb_req_idx_q == 0) begin
-          // TODO: make condition to start prefetching next line configurable
-          if (pixel_horz_q == 'd2 && pixel_vert_q[FontHeightLog-1:0] == 'd0) begin
-            tb_state_d = TB_IDLE;
-            tb_req_idx_d = LineCharWidth / 2 - 1;
-            tb_vert_d = (tb_vert_q == LineCharHeight - 1) ? '0 : tb_vert_q + 1;
+        // receive response and set new request addr
+        if (tb_valid) begin
+          textbuffer_linebuf_d[tb_req_idx_q*2+:2] = obi_tb_rsp.r.rdata;
+          obi_tb_req.req = '0;
+          // when finished prefetching line
+          if (tb_req_idx_q == 0) begin
+            tb_state_d = TB_LAST;
           end else begin
-            tb_state_d = TB_REQ;
-            tb_req_idx_d = tb_req_idx_q;
-            tb_vert_d = tb_vert_q;
-          end
-        end else begin
-          // receive response and set new request
-          if (tb_valid) begin
             // tb_rsp contains 2 char code
-            textbuffer_linebuf_d[tb_req_idx_q*2+:2] = obi_tb_rsp.r.rdata;
-            // set prefetch addr
-            obi_tb_req.req = '0;
             tb_state_d = TB_IDLE;
             tb_req_idx_d = tb_req_idx_q - 1;
           end
@@ -150,15 +142,29 @@ module ip_vga_fetcher #(
       end
 
       TB_IDLE: begin
-        obi_tb_req.req = '1;  // prefetch new value
+        // issue request
+        obi_tb_req.req = '1;
         tb_state_d = TB_REQ;
       end
 
+      TB_LAST: begin
+        // TODO: make condition to start prefetching next line configurable
+        if (pixel_horz_q == 'd2 && pixel_vert_q[FontHeightLog-1:0] == 'd0) begin
+          tb_state_d = TB_IDLE;
+          tb_req_idx_d = LineCharWidth / 2 - 1;
+          tb_vert_d = (tb_vert_q == LineCharHeight - 1) ? '0 : tb_vert_q + 1;
+        end else begin
+          tb_state_d = TB_LAST;
+          tb_req_idx_d = tb_req_idx_q;
+          tb_vert_d = tb_vert_q;
+        end
+      end
       // vsim warning
       default: begin
         tb_state_d = TB_REQ;
         obi_tb_req.req = '0;
         tb_req_idx_d = LineCharWidth / 2 - 1;
+        tb_last_d = '0;
       end
     endcase
   end
