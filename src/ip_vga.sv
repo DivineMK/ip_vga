@@ -7,7 +7,7 @@
 // Thomas Benz <tbenz@iis.ee.ethz.ch>
 
 /// Simple VGA IP capable of drawing frames from an external framebuffer.
-module ip_vga #(
+module ip_vga import ip_vga_regs_pkg::*; #(
     parameter obi_pkg::obi_cfg_t ObiCfg      = obi_pkg::ObiDefaultConfig,
     parameter int unsigned       RedWidth    = 5,
     parameter int unsigned       GreenWidth  = 6,
@@ -46,9 +46,7 @@ module ip_vga #(
   import ip_vga_config_pkg::*;
 
   logic timing_ready;
-  logic [31:0] reg_tb_addr;
-  logic [7:0] reg_clk_div;
-  logic reg_vga_en;
+  ip_vga_reg2hw_t reg2hw;
 
   logic [7:0] clk_div;
   logic [7:0] clk_cnt_d, clk_cnt_q;
@@ -60,8 +58,7 @@ module ip_vga #(
   logic [ BlueWidth-1:0] blue;
 
   // Clock divider constant
-  // assign clk_div   = |reg2hw.clk_div.q ? reg2hw.clk_div.q : 1;
-  assign clk_div   = |reg_clk_div ? reg_clk_div : 1;
+  assign clk_div   = |reg2hw.clk_div ? reg2hw.clk_div : 1;
 
   // Cycle counter to scale the incoming clock
   assign clk_cnt_d = (clk_cnt_q < (clk_div - 1)) ? clk_cnt_q + 8'b0000_0001 : 8'b0;
@@ -75,9 +72,7 @@ module ip_vga #(
       .rst_ni   (rst_ni),
       .obi_req_i(reg_req_i),
       .obi_rsp_o(reg_rsp_o),
-      .tb_addr_o(reg_tb_addr),
-      .clk_div_o(reg_clk_div),
-      .vga_en_o (reg_vga_en)
+      .reg2hw_o(reg2hw)
   );
 
   // FSM managing the VGA signals
@@ -92,7 +87,7 @@ module ip_vga #(
       .rst_ni,
 
       .fsm_en_i(clk_cnt_q == 0),
-      .vga_en_i(reg_vga_en),
+      .vga_en_i(reg2hw.vga_en),
       // .reg2hw_i(reg2hw),
 
       // Data input
@@ -125,7 +120,8 @@ module ip_vga #(
       .clk_i,
       .rst_ni,
 
-      .vga_en_i(reg_vga_en),
+      .vga_en_i(reg2hw.vga_en),
+      .tb_addr_i(reg2hw.tb_addr),
       .timing_ready_i(timing_ready),
 
       .obi_req_o,

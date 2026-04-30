@@ -52,92 +52,14 @@ module tb_ip_vga;
   // `OBI_TYPEDEF_R_CHAN_T(ip_vga_tb_obi_r_chan_t, ObiDataWidth, ObiIdWidth, ip_vga_tb_obi_r_optional_t)
   // `OBI_TYPEDEF_RSP_T(ip_vga_tb_obi_rsp_t, ip_vga_tb_obi_r_chan_t)
   `OBI_TYPEDEF_DEFAULT_ALL(ip_vga_tb_obi, obi_pkg::ObiDefaultConfig)
+  `OBI_TYPEDEF_DEFAULT_ALL(ip_vga_regs_obi, obi_pkg::ObiDefaultConfig)
   // verilog_format: on
 
   ip_vga_tb_obi_req_t ip_vga_tb_req, ip_vga_tb_req_delayed;
   ip_vga_tb_obi_rsp_t ip_vga_tb_rsp, ip_vga_tb_rsp_delayed;
-  //
-  // // RegBus interface
-  // `REG_BUS_TYPEDEF_ALL(reg_vga_tb, logic [RegBusAddrWidth-1:0], logic [RegBusDataWidth-1:0],
-  //                      logic [RegBusStrbWidth-1:0])
-  //
-  // REG_BUS #(
-  //     .ADDR_WIDTH(RegBusAddrWidth),
-  //     .DATA_WIDTH(RegBusDataWidth)
-  // ) i_tb_regbus (
-  //     .clk_i(clk)
-  // );
-  //
-  // typedef reg_test::reg_driver#(
-  //     .AW(RegBusAddrWidth),
-  //     .DW(RegBusDataWidth)
-  // ) reg_driver_t;
-  //
-  // reg_driver_t tb_reg_driver = new(i_tb_regbus);
-  //
-  // reg_vga_tb_req_t vga_reg_req;
-  // reg_vga_tb_rsp_t vga_reg_rsp;
-  //
-  // `REG_BUS_ASSIGN_TO_REQ(vga_reg_req, i_tb_regbus)
-  // `REG_BUS_ASSIGN_FROM_RSP(i_tb_regbus, vga_reg_rsp)
-  //
-  //
-  // typedef struct {
-  //   logic [AXIAddrWidth-1:0] addr;
-  //   logic [AXIDataWidth-1:0] data;
-  //   string desc;
-  // } reg_write_t;
-  //
-  // logic bus_error = 0;
-  //
-  // // Initiate VGA driver - 32x16 testing mode
-  // initial begin
-  //   automatic
-  //   reg_write_t
-  //   writes[] = '{
-  //       '{ip_vga_CLK_DIV_OFFSET, cfg.clk_div, "Clock divider"},
-  //       '{AXI_VGA_HORI_VISIBLE_SIZE_OFFSET, cfg.hori_visible_size, "Horizontal visible frame size"},
-  //       '{
-  //           AXI_VGA_HORI_FRONT_PORCH_SIZE_OFFSET,
-  //           cfg.hori_front_porch_size,
-  //           "Horizontal front porch"
-  //       },
-  //       '{AXI_VGA_HORI_SYNC_SIZE_OFFSET, cfg.hori_sync_size, "Horizontal sync part"},
-  //       '{AXI_VGA_HORI_BACK_PORCH_SIZE_OFFSET, cfg.hori_back_porch_size, "Horizontal back porch"},
-  //       '{AXI_VGA_VERT_VISIBLE_SIZE_OFFSET, cfg.vert_visible_size, "Vertical visible frame size"},
-  //       '{AXI_VGA_VERT_FRONT_PORCH_SIZE_OFFSET, cfg.vert_front_porch_size, "Vertical front porch"},
-  //       '{AXI_VGA_VERT_SYNC_SIZE_OFFSET, cfg.vert_sync_size, "Vertical sync part"},
-  //       '{AXI_VGA_VERT_BACK_PORCH_SIZE_OFFSET, cfg.vert_back_porch_size, "Vertical back porch"},
-  //       '{AXI_VGA_START_ADDR_LOW_OFFSET, cfg.start_addr_low, "Low end of frame buffer"},
-  //       '{AXI_VGA_START_ADDR_HIGH_OFFSET, cfg.start_addr_high, "High end of frame buffer"},
-  //       '{AXI_VGA_FRAME_SIZE_OFFSET, cfg.frame_size, "Frame size (#pixels)"},
-  //       '{AXI_VGA_BURST_LEN_OFFSET, cfg.burst_len, "Prefetch burst length"},
-  //       '{AXI_VGA_BURST_SPLIT_LEN_OFFSET, cfg.burst_split_len, "AXI burst length"}
-  //   };
-  //
-  //   #(10 * ClkPeriod);
-  //   tb_reg_driver.reset_master();
-  //   #(10 * ClkPeriod);
-  //
-  //   for (int i = 0; i < writes.size(); i++) begin
-  //     $info("TEST: %s", writes[i].desc);
-  //     tb_reg_driver.send_write(writes[i].addr, writes[i].data, 4'hF, bus_error);
-  //     assert (!bus_error)
-  //     else $fatal("Write to VGA cfg reg (0x%0h) failed", writes[i].addr);
-  //   end
-  //
-  //   $info("TEST: FSM enable");
-  //   tb_reg_driver.send_write(AXI_VGA_CONTROL_OFFSET, 32'h1, 4'hf, bus_error);
-  //   assert (!bus_error)
-  //   else $fatal("Write to VGA cfg reg (0x%0h) failed", AXI_VGA_CONTROL_OFFSET);
-  //
-  //   $info("TEST: Render");
-  //   // See frame capture bock below
-  //   #(3 * ClkPeriod * cfg.clk_div * FullRenderHeight * FullRenderWidth);
-  //   #(5000 * ClkPeriod);
-  //   $info("TIMEOUT");
-  //   $finish();
-  // end
+
+  ip_vga_regs_obi_req_t ip_vga_regs_req;
+  ip_vga_regs_obi_rsp_t ip_vga_regs_rsp;
 
   // logic [TBSize-1:0][31:0] tb;
   // always_comb begin
@@ -428,9 +350,9 @@ module tb_ip_vga;
       .HCountWidth(12),
       .VCountWidth(12),
       .obi_req_t  (ip_vga_tb_obi_req_t),
-      .obi_rsp_t  (ip_vga_tb_obi_rsp_t)
-      // .reg_req_t   (reg_vga_tb_req_t),
-      // .reg_rsp_t  (reg_vga_tb_rsp_t)
+      .obi_rsp_t  (ip_vga_tb_obi_rsp_t),
+      .reg_req_t  (ip_vga_regs_obi_req_t),
+      .reg_rsp_t  (ip_vga_regs_obi_rsp_t)
   ) i_ip_vga (
       .clk_i (clk),
       .rst_ni(rst_n),
@@ -438,8 +360,8 @@ module tb_ip_vga;
       .test_mode_en_i(1'b0),
 
       // Regbus config ports
-      // .reg_req_i(vga_reg_req),
-      // .reg_rsp_o(vga_reg_rsp),
+      .reg_req_i(ip_vga_regs_req),
+      .reg_rsp_o(ip_vga_regs_rsp),
       //
       // // AXI Data ports
       // .axi_req_o (vga_axi_req),

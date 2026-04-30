@@ -14,6 +14,7 @@ module ip_vga_fetcher #(
     input logic rst_ni,
 
     input logic vga_en_i,
+    input logic [ObiCfg.AddrWidth-1:0] tb_addr_i,
     input logic timing_ready_i,
 
     // OBI Data ports
@@ -111,7 +112,7 @@ module ip_vga_fetcher #(
     textbuffer_linebuf_d = textbuffer_linebuf_q;
     tb_req_idx_d = tb_req_idx_q;
     tb_vert_d = tb_vert_q;
-    obi_tb_req.a.addr[AddrWidth-1:2] = tb_vert_q * (LineCharWidth/2) 
+    obi_tb_req.a.addr[AddrWidth-1:2] = tb_addr_i + tb_vert_q * (LineCharWidth/2) 
                 + (LineCharWidth/2 - 1 - tb_req_idx_q); // tb_req_idx is down counting, tb_req is up counting
     obi_tb_req.req = '0;  // default to prefetch
 

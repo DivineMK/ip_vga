@@ -7,7 +7,7 @@
 
 `include "common_cells/registers.svh"
 
-module ip_vga_regs #(
+module ip_vga_regs import ip_vga_regs_pkg::*; #(
     parameter type obi_req_t = logic,
     parameter type obi_rsp_t = logic
 ) (
@@ -16,12 +16,8 @@ module ip_vga_regs #(
     input  obi_req_t        obi_req_i,
     output obi_rsp_t        obi_rsp_o,
     // To hardware
-    output logic     [31:0] tb_addr_o,
-    output logic     [ 7:0] clk_div_o,
-    output logic            vga_en_o
+    output ip_vga_reg2hw_t reg2hw_o
 );
-  import ip_vga_regs_pkg::*;
-
   // read-write registers
   logic [31:0] tb_addr_d, tb_addr_q;
   logic [7:0] clk_div_d, clk_div_q;
@@ -48,9 +44,9 @@ module ip_vga_regs #(
     assign be_mask[8*i+:8] = {8{obi_req_i.a.be[i]}};
   end
 
-  assign tb_addr_o = tb_addr_q;
-  assign clk_div_o = clk_div_q;
-  assign vga_en_o  = vga_en_q;
+  assign reg2hw_o.tb_addr = tb_addr_q;
+  assign reg2hw_o.clk_div = clk_div_q;
+  assign reg2hw_o.vga_en  = vga_en_q;
 
   // Address phase: update writable registers
   always_comb begin : write_fsm
