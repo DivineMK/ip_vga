@@ -1,0 +1,1 @@
+../src/ip_vga_config_pkg.sv

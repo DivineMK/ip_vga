@@ -1,20 +1,33 @@
+`include "common_cells/registers.svh"
+
 import ip_vga_config_pkg::*;
 
 module text_buffer #(
+    parameter int unsigned ObiAddrWidth  = 32,
+    parameter int unsigned ObiDataWidth  = 32,
+    parameter int unsigned ObiRDataWidth = ObiDataWidth,
+    parameter int unsigned ObiIdWidth    = ObiIdWidth,
+    parameter type         obi_req_t     = logic,
+    parameter type         obi_rsp_t     = logic,
+
     parameter int unsigned TBSize = TBSize,
-    parameter int unsigned TBAddrWidth = TBAddrWidth,
-    parameter int unsigned TBDataWidth = TBDataWidth
+    parameter int unsigned TBAddrWidth = ObiAddrWidth,
+    parameter int unsigned TBDataWidth = ObiRDataWidth
 ) (
-    input  logic                   clk_i,
-    input  logic                   rst_ni,
-    input  logic [TBAddrWidth-1:0] req_addr_i,
-    output logic [TBDataWidth-1:0] rsp_data_o,
-    input  logic                   ready_i,
-    output logic                   valid_o
+    input  logic     clk_i,
+    input  logic     rst_ni,
+    input  obi_req_t obi_req_i,
+    output obi_rsp_t obi_rsp_o
 );
 
   logic [TBSize-1:0][TBDataWidth-1:0] tb;
-  logic [TBAddrWidth-1:0] req_d, req_q;
+  logic [TBAddrWidth-1:0] addr_d, addr_q;
+
+  // OBI specific
+  logic req_d, req_q;
+  logic we_d, we_q;
+  logic [ObiIdWidth-1:0] id_d, id_q;
+  // logic [ObiDataWidth-1:0] wdata_d, wdata_q; // TODO: allow write
 
   always_comb begin : tb_init
     for (logic [15:0] i = 0; i < LineCharHeight; i += 2) begin
@@ -41,15 +54,23 @@ module text_buffer #(
     end
   end
 
-  assign req_d = req_addr_i;
-  assign rsp_data_o = tb[req_q];
-  assign valid_o = ready_i;  // TODO
+  // Request (A channel)
+  // rready = 1
+  assign req_d = obi_req_i.req;
+  assign addr_d = obi_req_i.a.addr;
+  assign we_d = obi_req_i.a.we;
+  assign id_d = obi_req_i.a.aid;
+  // Handshakes
+  assign obi_rsp_o.gnt = obi_req_i.req;
+  assign obi_rsp_o.rvalid = req_q;
+  // Response (R channel)
+  assign obi_rsp_o.r.rdata = tb[addr_q];
+  assign obi_rsp_o.r.rid = id_q;
+  assign obi_rsp_o.r.err = '0;
+  // assign obi_rsp_o.r.r_optional = '0;
 
-  always_ff @(posedge clk_i, negedge rst_ni) begin : ff
-    if (~rst_ni) begin
-      req_q <= '0;
-    end else begin
-      req_q <= req_d;
-    end
-  end
+  `FF(addr_q, addr_d, '0);
+  `FF(req_q, req_d, '0);
+  `FF(we_q, we_d, '0);
+  `FF(id_q, id_d, '0);
 endmodule

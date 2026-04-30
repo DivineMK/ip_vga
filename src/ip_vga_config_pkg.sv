@@ -10,8 +10,11 @@ package ip_vga_config_pkg;
   localparam int unsigned LineCharWidth = 80;
   localparam int unsigned LineCharHeight = 25;
 
-  localparam int unsigned TBDataWidth = 32; // obi width
-  localparam int unsigned TBAddrWidth = 32; // croc is 32 bit
+  // OBI parameters
+  localparam int unsigned ObiDataWidth = 32; // obi width
+  localparam int unsigned ObiAddrWidth = 32; // croc is 32 bit
+  localparam int unsigned ObiIdWidth = 1;
+
   localparam int unsigned TBSize = LineCharWidth * LineCharHeight / 2; // word size = 2 elements
 
   localparam int unsigned FrameWidth = FontWidth * LineCharWidth;

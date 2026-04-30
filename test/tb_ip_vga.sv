@@ -5,12 +5,12 @@
 // Nicole Narr <narrn@student.ethz.ch>
 // Christopher Reinwardt <creinwar@student.ethz.ch>
 
-`include "axi/typedef.svh"
-`include "register_interface/assign.svh"
-`include "register_interface/typedef.svh"
+`include "obi/typedef.svh"
+// `include "register_interface/assign.svh"
+// `include "register_interface/typedef.svh"
 
 module tb_ip_vga;
-  import ip_vga_config_pkg::*; // needed in vsim for some reason?
+  import ip_vga_config_pkg::*;  // needed in vsim for some reason?
   import tb_ip_vga_pkg::*;
 
   localparam int unsigned ClkPeriod = 20ns;
@@ -43,12 +43,18 @@ module tb_ip_vga;
       .rst_no(rst_n)
   );
 
-  // // AXI interface
-  // `AXI_TYPEDEF_ALL(ip_vga_tb, logic [AXIAddrWidth-1:0], logic [AXIIdWidth-1:0],
-  //                  logic [AXIDataWidth-1:0], logic [AXIStrbWidth-1:0], logic [AXIUserWidth-1:0])
-  //
-  // ip_vga_tb_req_t vga_axi_req, vga_axi_req_dly;
-  // ip_vga_tb_resp_t vga_axi_resp, vga_axi_resp_dly;
+  // AXI interface
+  // verilog_format: off
+  `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(obi_ip_vga_tb_a_optional_t)
+  `OBI_TYPEDEF_A_CHAN_T(obi_ip_vga_tb_a_chan_t, ObiAddrWidth, ObiDataWidth, ObiIdWidth, obi_ip_vga_tb_a_optional_t)
+  `OBI_TYPEDEF_REQ_T(obi_ip_vga_tb_req_t, obi_ip_vga_tb_a_chan_t)
+  `OBI_TYPEDEF_MINIMAL_R_OPTIONAL(obi_ip_vga_tb_r_optional_t)
+  `OBI_TYPEDEF_R_CHAN_T(obi_ip_vga_tb_r_chan_t, ObiDataWidth, ObiIdWidth, obi_ip_vga_tb_r_optional_t)
+  `OBI_TYPEDEF_RSP_T(obi_ip_vga_tb_rsp_t, obi_ip_vga_tb_r_chan_t)
+  // verilog_format: on
+
+  obi_ip_vga_tb_req_t ip_vga_tb_req;
+  obi_ip_vga_tb_rsp_t ip_vga_tb_rsp;
   //
   // // RegBus interface
   // `REG_BUS_TYPEDEF_ALL(reg_vga_tb, logic [RegBusAddrWidth-1:0], logic [RegBusDataWidth-1:0],
@@ -181,7 +187,7 @@ module tb_ip_vga;
   task write_frame_to_bmp(string file);
     automatic int fd, fd_debug;
     automatic int i, j;
-    automatic bit[7:0] r8, g8, b8;
+    automatic bit [7:0] r8, g8, b8;
     automatic int row_pad = (4 - (FrameWidth * 3) % 4) % 4;  // pad row to 4-byte aligned
     automatic int filesize = 54 + (FrameWidth * 3 + row_pad) * FrameHeight;
 
@@ -312,16 +318,31 @@ module tb_ip_vga;
     end
   end
 
+
+  text_buffer #(
+      .TBSize(TBSize),
+      .ObiAddrWidth(ObiAddrWidth),
+      .ObiDataWidth(ObiDataWidth),
+      .ObiIdWidth(ObiIdWidth),
+      .obi_req_t(obi_ip_vga_tb_req_t),
+      .obi_rsp_t(obi_ip_vga_tb_rsp_t)
+  ) i_text_buffer (
+      .clk_i(clk),
+      .rst_ni(rst_n),
+      .obi_req_i(ip_vga_tb_req),
+      .obi_rsp_o(ip_vga_tb_rsp)
+  );
+
   ip_vga #(
       .RedWidth   (RedWidth),
       .GreenWidth (GreenWidth),
       .BlueWidth  (BlueWidth),
       .HCountWidth(12),
-      .VCountWidth(12)
-      // .axi_req_t   (ip_vga_tb_req_t),
-      // .axi_resp_t  (ip_vga_tb_resp_t),
+      .VCountWidth(12),
+      .obi_req_t   (obi_ip_vga_tb_req_t),
+      .obi_rsp_t  (obi_ip_vga_tb_rsp_t)
       // .reg_req_t   (reg_vga_tb_req_t),
-      // .reg_resp_t  (reg_vga_tb_rsp_t)
+      // .reg_rsp_t  (reg_vga_tb_rsp_t)
   ) i_ip_vga (
       .clk_i (clk),
       .rst_ni(rst_n),
@@ -334,7 +355,7 @@ module tb_ip_vga;
       //
       // // AXI Data ports
       // .axi_req_o (vga_axi_req),
-      // .axi_resp_i(vga_axi_resp),
+      // .axi_rsp_i(vga_axi_rsp),
 
       // VGA interface
       .hsync_o(),
@@ -343,8 +364,11 @@ module tb_ip_vga;
       .green_o(),
       .blue_o (),
 
+      .obi_req_o(ip_vga_tb_req),
+      .obi_rsp_i(ip_vga_tb_rsp),
+
       .vsync_start_o(),
-      .frame_done_o()
+      .frame_done_o ()
   );
 
 
