@@ -45,12 +45,13 @@ module tb_ip_vga;
 
   // AXI interface
   // verilog_format: off
-  `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(ip_vga_tb_obi_a_optional_t)
-  `OBI_TYPEDEF_A_CHAN_T(ip_vga_tb_obi_a_chan_t, ObiAddrWidth, ObiDataWidth, ObiIdWidth, ip_vga_tb_obi_a_optional_t)
-  `OBI_TYPEDEF_REQ_T(ip_vga_tb_obi_req_t, ip_vga_tb_obi_a_chan_t)
-  `OBI_TYPEDEF_MINIMAL_R_OPTIONAL(ip_vga_tb_obi_r_optional_t)
-  `OBI_TYPEDEF_R_CHAN_T(ip_vga_tb_obi_r_chan_t, ObiDataWidth, ObiIdWidth, ip_vga_tb_obi_r_optional_t)
-  `OBI_TYPEDEF_RSP_T(ip_vga_tb_obi_rsp_t, ip_vga_tb_obi_r_chan_t)
+  // `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(ip_vga_tb_obi_a_optional_t)
+  // `OBI_TYPEDEF_A_CHAN_T(ip_vga_tb_obi_a_chan_t, ObiAddrWidth, ObiDataWidth, ObiIdWidth, ip_vga_tb_obi_a_optional_t)
+  // `OBI_TYPEDEF_REQ_T(ip_vga_tb_obi_req_t, ip_vga_tb_obi_a_chan_t)
+  // `OBI_TYPEDEF_MINIMAL_R_OPTIONAL(ip_vga_tb_obi_r_optional_t)
+  // `OBI_TYPEDEF_R_CHAN_T(ip_vga_tb_obi_r_chan_t, ObiDataWidth, ObiIdWidth, ip_vga_tb_obi_r_optional_t)
+  // `OBI_TYPEDEF_RSP_T(ip_vga_tb_obi_rsp_t, ip_vga_tb_obi_r_chan_t)
+  `OBI_TYPEDEF_DEFAULT_ALL(ip_vga_tb_obi, obi_pkg::ObiDefaultConfig)
   // verilog_format: on
 
   ip_vga_tb_obi_req_t ip_vga_tb_req, ip_vga_tb_req_delayed;

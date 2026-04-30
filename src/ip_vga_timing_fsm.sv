@@ -18,6 +18,7 @@ module ip_vga_timing_fsm #(
     input logic rst_ni,
 
     input logic fsm_en_i,
+    input logic vga_en_i,
     // input axi_vga_reg_pkg::axi_vga_reg2hw_t reg2hw_i,
 
     // Data input
@@ -72,7 +73,7 @@ module ip_vga_timing_fsm #(
 
   // Enable FSM only if external enable is high (fsm_en_i) and enable register
   // is set too (reg2hw_i.control.q)
-  assign fsm_en = ControlEnable & fsm_en_i;
+  assign fsm_en = vga_en_i & fsm_en_i;
 
   assign h_visible_size = HoriVisibleSize;
   assign h_front_size = HoriFrontPorchSize;
@@ -131,7 +132,7 @@ module ip_vga_timing_fsm #(
           hstate_d = VISIBLE;
         end
       endcase
-    end else if (!ControlEnable) begin
+    end else if (!vga_en_i) begin
       // Reset to beginning of FRONT_PAGE (right after visible)
       hcounter_d = h_sync_size;
       hstate_d   = FRONT_PORCH;
@@ -179,7 +180,7 @@ module ip_vga_timing_fsm #(
           vstate_d = VISIBLE;
         end
       endcase
-    end else if (!ControlEnable) begin
+    end else if (!vga_en_i) begin
       // Reset to beginning of FRONT_PAGE (right after visible)
       vcounter_d = v_front_size;
       vstate_d   = FRONT_PORCH;

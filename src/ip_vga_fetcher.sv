@@ -2,20 +2,18 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 
-`include "common_cells/registers.svh"
-`include "obi/typedef.svh"
-
 module ip_vga_fetcher #(
-    parameter int unsigned RedWidth   = 5,
-    parameter int unsigned GreenWidth = 6,
-    parameter int unsigned BlueWidth  = 5,
-    parameter type         obi_req_t  = logic,
-    parameter type         obi_rsp_t  = logic
+    parameter obi_pkg::obi_cfg_t ObiCfg     = obi_pkg::ObiDefaultConfig,
+    parameter int unsigned       RedWidth   = 5,
+    parameter int unsigned       GreenWidth = 6,
+    parameter int unsigned       BlueWidth  = 5,
+    parameter type               obi_req_t  = logic,
+    parameter type               obi_rsp_t  = logic
 ) (
     input logic clk_i,
     input logic rst_ni,
 
-    input logic vsync_start_i,
+    input logic vga_en_i,
     input logic timing_ready_i,
 
     // OBI Data ports
@@ -28,20 +26,17 @@ module ip_vga_fetcher #(
 );
   import ip_vga_config_pkg::*;
 
-  // Input: visible, vsync_start, valid
-  // Output: r,g,b, ready
-  //
-  // localparam TB_LINEBUF = reg2hw.hori_visible_size.q / 8;
+  localparam int unsigned AddrWidth = ObiCfg.AddrWidth;
+
   logic [LineCharWidth-1:0][15:0]
       textbuffer_linebuf_d,
       textbuffer_linebuf_q;  // line buffer for fetching char code from text buffer (TB)
   logic [1:0][FontWidth-1:0]
       bitmap_buffer_d, bitmap_buffer_q;  // bitmap buffer for fetching from font
   logic [31:0] pixel_horz_q, pixel_horz_d, pixel_vert_q, pixel_vert_d;  // coordinate in pixel unit
-  logic [28:0] char_horz, char_vert;  // coordinate in char unit
+  logic [28:0] char_horz;  // coordinate in char unit
 
   assign char_horz = pixel_horz_q >> $clog2(FontWidth);
-  assign char_vert = pixel_vert_q >> $clog2(FontHeight);
 
   // font request
   logic [$clog2(LineCharWidth)-1:0]
@@ -57,7 +52,6 @@ module ip_vga_fetcher #(
       tb_req_idx_d, tb_req_idx_q;  // index for request from TB and write to textbuffer_linebuf
   obi_req_t obi_tb_req;
   logic [31:0] tb_vert_q, tb_vert_d;  // coordinate for request from TB, in char unit vertically
-  logic tb_last_d, tb_last_q; // flag to process last char of line
   // TB response
   obi_rsp_t obi_tb_rsp;
   logic tb_valid;
@@ -91,7 +85,6 @@ module ip_vga_fetcher #(
   assign obi_req_o = obi_tb_req;
   assign obi_tb_rsp = obi_rsp_i;
 
-  assign obi_tb_req.rready = '1;
   assign tb_valid = obi_tb_rsp.rvalid;  // output from tb valid and ready for new request
 
   assign obi_tb_req.a.we = '0;  // read only
@@ -101,7 +94,7 @@ module ip_vga_fetcher #(
     pixel_horz_d = pixel_horz_q;
     pixel_vert_d = pixel_vert_q;
 
-    if (timing_ready_i) begin
+    if (vga_en_i && timing_ready_i) begin
       pixel_horz_d = pixel_horz_q - 1;
       if (pixel_horz_q == 0) begin  // avoid using _d var to avoid adder in path
         pixel_horz_d = HoriVisibleSize - 1;
@@ -118,14 +111,12 @@ module ip_vga_fetcher #(
     textbuffer_linebuf_d = textbuffer_linebuf_q;
     tb_req_idx_d = tb_req_idx_q;
     tb_vert_d = tb_vert_q;
-    tb_last_d = tb_last_q;
-    obi_tb_req.a.addr[ObiAddrWidth-1:2] = tb_vert_q * (LineCharWidth/2) 
+    obi_tb_req.a.addr[AddrWidth-1:2] = tb_vert_q * (LineCharWidth/2) 
                 + (LineCharWidth/2 - 1 - tb_req_idx_q); // tb_req_idx is down counting, tb_req is up counting
     obi_tb_req.req = '0;  // default to prefetch
 
     unique case (tb_state_q)
       TB_REQ: begin
-        // TODO: response delay handling
         // receive response and set new request addr
         if (tb_valid) begin
           textbuffer_linebuf_d[tb_req_idx_q*2+:2] = obi_tb_rsp.r.rdata;
@@ -135,7 +126,7 @@ module ip_vga_fetcher #(
             tb_state_d = TB_LAST;
           end else begin
             // tb_rsp contains 2 char code
-            tb_state_d = TB_IDLE;
+            tb_state_d   = TB_IDLE;
             tb_req_idx_d = tb_req_idx_q - 1;
           end
         end
@@ -148,6 +139,7 @@ module ip_vga_fetcher #(
       end
 
       TB_LAST: begin
+        // wait after filling last request for line buffer
         // TODO: make condition to start prefetching next line configurable
         if (pixel_horz_q == 'd2 && pixel_vert_q[FontHeightLog-1:0] == 'd0) begin
           tb_state_d = TB_IDLE;
@@ -164,7 +156,6 @@ module ip_vga_fetcher #(
         tb_state_d = TB_REQ;
         obi_tb_req.req = '0;
         tb_req_idx_d = LineCharWidth / 2 - 1;
-        tb_last_d = '0;
       end
     endcase
   end
@@ -212,7 +203,7 @@ module ip_vga_fetcher #(
   assign {red_o, green_o, blue_o} = (bitmap_buffer_q[char_horz[0]][pixel_horz_q[2:0]] == 1) ? 16'hFFFF : 16'h0;
 
   always_ff @(posedge clk_i, negedge rst_ni) begin
-    if (~rst_ni) begin
+    if (~rst_ni || ~vga_en_i) begin
       pixel_horz_q <= HoriVisibleSize - 1;
       pixel_vert_q <= VertVisibleSize - 1;
 
