@@ -25,8 +25,8 @@ module tb_ip_vga;
   // // Buffer
   // localparam int unsigned BufferDepth = 16;
   // localparam int unsigned MaxReadTxns = 24;
-  // // Mem Depth
-  // localparam int unsigned MemDepth = 32;
+  // Mem Depth
+  localparam int unsigned NoCuts = 8;
   //
   // // RegBus parameters
   // localparam int unsigned RegBusAddrWidth = 48;
@@ -45,16 +45,16 @@ module tb_ip_vga;
 
   // AXI interface
   // verilog_format: off
-  `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(obi_ip_vga_tb_a_optional_t)
-  `OBI_TYPEDEF_A_CHAN_T(obi_ip_vga_tb_a_chan_t, ObiAddrWidth, ObiDataWidth, ObiIdWidth, obi_ip_vga_tb_a_optional_t)
-  `OBI_TYPEDEF_REQ_T(obi_ip_vga_tb_req_t, obi_ip_vga_tb_a_chan_t)
-  `OBI_TYPEDEF_MINIMAL_R_OPTIONAL(obi_ip_vga_tb_r_optional_t)
-  `OBI_TYPEDEF_R_CHAN_T(obi_ip_vga_tb_r_chan_t, ObiDataWidth, ObiIdWidth, obi_ip_vga_tb_r_optional_t)
-  `OBI_TYPEDEF_RSP_T(obi_ip_vga_tb_rsp_t, obi_ip_vga_tb_r_chan_t)
+  `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(ip_vga_tb_obi_a_optional_t)
+  `OBI_TYPEDEF_A_CHAN_T(ip_vga_tb_obi_a_chan_t, ObiAddrWidth, ObiDataWidth, ObiIdWidth, ip_vga_tb_obi_a_optional_t)
+  `OBI_TYPEDEF_REQ_T(ip_vga_tb_obi_req_t, ip_vga_tb_obi_a_chan_t)
+  `OBI_TYPEDEF_MINIMAL_R_OPTIONAL(ip_vga_tb_obi_r_optional_t)
+  `OBI_TYPEDEF_R_CHAN_T(ip_vga_tb_obi_r_chan_t, ObiDataWidth, ObiIdWidth, ip_vga_tb_obi_r_optional_t)
+  `OBI_TYPEDEF_RSP_T(ip_vga_tb_obi_rsp_t, ip_vga_tb_obi_r_chan_t)
   // verilog_format: on
 
-  obi_ip_vga_tb_req_t ip_vga_tb_req;
-  obi_ip_vga_tb_rsp_t ip_vga_tb_rsp;
+  ip_vga_tb_obi_req_t ip_vga_tb_req, ip_vga_tb_req_delayed;
+  ip_vga_tb_obi_rsp_t ip_vga_tb_rsp, ip_vga_tb_rsp_delayed;
   //
   // // RegBus interface
   // `REG_BUS_TYPEDEF_ALL(reg_vga_tb, logic [RegBusAddrWidth-1:0], logic [RegBusDataWidth-1:0],
@@ -172,7 +172,7 @@ module tb_ip_vga;
     $dumpfile("ip_vga.fst");
     $dumpvars(0, i_ip_vga);
 
-    #(2 * ClkPeriod * ClkDiv * FullRenderHeight * FullRenderWidth);
+    #(3 * ClkPeriod * ClkDiv * FullRenderHeight * FullRenderWidth);
     #(5000 * ClkPeriod);
     $info("TIMEOUT");
     $finish();
@@ -318,20 +318,107 @@ module tb_ip_vga;
     end
   end
 
+  // text_buffer #(
+  //     .TBSize(TBSize),
+  //     .ObiAddrWidth(ObiAddrWidth),
+  //     .ObiDataWidth(ObiDataWidth),
+  //     .ObiIdWidth(ObiIdWidth),
+  //     .obi_req_t(ip_vga_tb_obi_req_t),
+  //     .obi_rsp_t(ip_vga_tb_obi_rsp_t)
+  // ) i_text_buffer (
+  //     .clk_i(clk),
+  //     .rst_ni(rst_n),
+  //     .obi_req_i(ip_vga_tb_req),
+  //     .obi_rsp_o(ip_vga_tb_rsp)
+  // );
 
-  text_buffer #(
-      .TBSize(TBSize),
-      .ObiAddrWidth(ObiAddrWidth),
-      .ObiDataWidth(ObiDataWidth),
-      .ObiIdWidth(ObiIdWidth),
-      .obi_req_t(obi_ip_vga_tb_req_t),
-      .obi_rsp_t(obi_ip_vga_tb_rsp_t)
-  ) i_text_buffer (
-      .clk_i(clk),
-      .rst_ni(rst_n),
-      .obi_req_i(ip_vga_tb_req),
-      .obi_rsp_o(ip_vga_tb_rsp)
+  initial begin : textbuffer_init
+    for (logic [15:0] i = 0; i < LineCharHeight; i += 1) begin
+      for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 1) begin
+        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+0] = {i[0], j[0]};
+        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+1] = 8'h00;
+        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+2] = {j[0], i[0]};
+        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+3] = 8'h00;
+      end
+    end
+
+    // for (logic [15:0] i = 1; i < LineCharHeight; i += 2) begin
+    //   for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 1) begin
+    //     for (logic [2:0] k = 0; k < 4; k++) begin
+    //       if (k % 2 == 1) begin
+    //         i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+k] = 8'h00;
+    //       end else begin
+    //         i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+k] = i[1:0] + j[1:0];
+    //       end
+    //     end
+    //   end
+    // end
+    // for (logic [15:0] i = 1; i < LineCharHeight; i += 2) begin
+    //   for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 4) begin
+    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+0)] = 32'h00000000;
+    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+1)] = 32'h00030003;
+    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+2)] = 32'h00020002;
+    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+3)] = 32'h00010001;
+    //   end
+    // end
+  end
+
+  obi_sim_mem #(
+      .ObiCfg           (obi_pkg::ObiDefaultConfig),
+      .obi_req_t        (ip_vga_tb_obi_req_t),
+      .obi_rsp_t        (ip_vga_tb_obi_rsp_t),
+      .obi_r_chan_t     (ip_vga_tb_obi_r_chan_t),
+      .WarnUninitialized('1),
+      .ClearErrOnAccess ('0),                         // not used
+      .ApplDelay        (ClkPeriod * 0.3),
+      .AcqDelay         (ClkPeriod * 0.8)
+  ) i_obi_sim_mem (
+      .clk_i      (clk),
+      .rst_ni     (rst_n),
+      .obi_req_i  (ip_vga_tb_req_delayed),
+      .obi_rsp_o  (ip_vga_tb_rsp_delayed),
+      // Memory monitor signals for debugging
+      .mon_valid_o(),
+      .mon_we_o   (),
+      .mon_addr_o (),
+      .mon_wdata_o(),
+      .mon_be_o   (),
+      .mon_id_o   ()
   );
+
+  if (NoCuts == '0) begin : gen_obi_cuts_bypass
+    assign ip_vga_tb_rsp = ip_vga_tb_rsp_delayed;
+    assign ip_vga_tb_req_delayed = ip_vga_tb_req;
+  end else begin : gen_obi_cut
+    ip_vga_tb_obi_req_t [NoCuts:0] req_cuts;
+    ip_vga_tb_obi_rsp_t [NoCuts:0] rsp_cuts;
+
+    assign req_cuts[0] = ip_vga_tb_req;
+    assign ip_vga_tb_rsp = rsp_cuts[0];
+
+    assign ip_vga_tb_req_delayed = req_cuts[NoCuts];
+    assign rsp_cuts[NoCuts] = ip_vga_tb_rsp_delayed;
+
+    for (genvar i = 0; i < NoCuts; i++) begin : gen_obi_cuts
+      obi_cut #(
+          .ObiCfg(obi_pkg::ObiDefaultConfig),
+          .obi_a_chan_t(ip_vga_tb_obi_a_chan_t),
+          .obi_r_chan_t(ip_vga_tb_obi_r_chan_t),
+          .obi_req_t(ip_vga_tb_obi_req_t),
+          .obi_rsp_t(ip_vga_tb_obi_rsp_t),
+          .BypassReq(1'b0),
+          .BypassRsp(1'b0)
+      ) i_obi_cut (
+          .clk_i         (clk),
+          .rst_ni        (rst_n),
+          .sbr_port_req_i(req_cuts[i]),
+          .sbr_port_rsp_o(rsp_cuts[i]),
+          .mgr_port_req_o(req_cuts[i+1]),
+          .mgr_port_rsp_i(rsp_cuts[i+1])
+      );
+    end
+  end
+
 
   ip_vga #(
       .RedWidth   (RedWidth),
@@ -339,8 +426,8 @@ module tb_ip_vga;
       .BlueWidth  (BlueWidth),
       .HCountWidth(12),
       .VCountWidth(12),
-      .obi_req_t   (obi_ip_vga_tb_req_t),
-      .obi_rsp_t  (obi_ip_vga_tb_rsp_t)
+      .obi_req_t  (ip_vga_tb_obi_req_t),
+      .obi_rsp_t  (ip_vga_tb_obi_rsp_t)
       // .reg_req_t   (reg_vga_tb_req_t),
       // .reg_rsp_t  (reg_vga_tb_rsp_t)
   ) i_ip_vga (

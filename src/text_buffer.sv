@@ -64,7 +64,7 @@ module text_buffer #(
   assign obi_rsp_o.gnt = obi_req_i.req;
   assign obi_rsp_o.rvalid = req_q;
   // Response (R channel)
-  assign obi_rsp_o.r.rdata = tb[addr_q];
+  assign obi_rsp_o.r.rdata = tb[addr_q[TBAddrWidth-1:2]];
   assign obi_rsp_o.r.rid = id_q;
   assign obi_rsp_o.r.err = '0;
   // assign obi_rsp_o.r.r_optional = '0;
