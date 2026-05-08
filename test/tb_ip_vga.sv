@@ -12,8 +12,11 @@
 module tb_ip_vga;
   import ip_vga_config_pkg::*;  // needed in vsim for some reason?
   import tb_ip_vga_pkg::*;
+  import ip_vga_regs_pkg::*;
 
   localparam int unsigned ClkPeriod = 20ns;
+  localparam int unsigned TApp = ClkPeriod * 0.3;
+  localparam int unsigned TAcq = ClkPeriod * 0.8;
 
   // // AXI parameters
   // localparam int unsigned AXIAddrWidth = 48;
@@ -94,6 +97,45 @@ module tb_ip_vga;
   initial begin
     $dumpfile("ip_vga.fst");
     $dumpvars(0, i_ip_vga);
+
+    ip_vga_regs_req.req = 0;
+    ip_vga_regs_req.a.aid = 0;
+    ip_vga_regs_req.a.addr = 32'h0000_0000;
+    ip_vga_regs_req.a.we = 1;
+    ip_vga_regs_req.a.be = 4'h0;
+    ip_vga_regs_req.a.wdata = 32'h0;
+
+    repeat (10) @(posedge clk);
+    $display("Setting VGA_EN");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_EN_OFFSET;
+    ip_vga_regs_req.a.be = 4'h1;
+    ip_vga_regs_req.a.wdata = 32'h1;
+
+    @(posedge ip_vga_regs_rsp.rvalid);
+    $display("Setting CLK_DIV");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = CLK_DIV_OFFSET;
+    ip_vga_regs_req.a.be = 4'h1;
+    ip_vga_regs_req.a.wdata = 32'h2;
+
+    @(posedge clk);
+    $display("Setting TB_ADDR");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = TB_ADDR_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h0;
+    @(posedge clk);
+
+    #TApp;
+    ip_vga_regs_req.req = 0;
+    ip_vga_regs_req.a.addr = 0;
+    ip_vga_regs_req.a.be = 4'h0;
+    ip_vga_regs_req.a.wdata = 32'h0;
+    repeat (2) @(posedge clk);
 
     #(3 * ClkPeriod * ClkDiv * FullRenderHeight * FullRenderWidth);
     #(5000 * ClkPeriod);
@@ -264,26 +306,6 @@ module tb_ip_vga;
         i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+3] = 8'h00;
       end
     end
-
-    // for (logic [15:0] i = 1; i < LineCharHeight; i += 2) begin
-    //   for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 1) begin
-    //     for (logic [2:0] k = 0; k < 4; k++) begin
-    //       if (k % 2 == 1) begin
-    //         i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+k] = 8'h00;
-    //       end else begin
-    //         i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+k] = i[1:0] + j[1:0];
-    //       end
-    //     end
-    //   end
-    // end
-    // for (logic [15:0] i = 1; i < LineCharHeight; i += 2) begin
-    //   for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 4) begin
-    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+0)] = 32'h00000000;
-    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+1)] = 32'h00030003;
-    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+2)] = 32'h00020002;
-    //     i_obi_sim_mem.mem[i*LineCharWidth/2+(j+3)] = 32'h00010001;
-    //   end
-    // end
   end
 
   obi_sim_mem #(
@@ -293,8 +315,8 @@ module tb_ip_vga;
       .obi_r_chan_t     (ip_vga_tb_obi_r_chan_t),
       .WarnUninitialized('1),
       .ClearErrOnAccess ('0),                         // not used
-      .ApplDelay        (ClkPeriod * 0.3),
-      .AcqDelay         (ClkPeriod * 0.8)
+      .ApplDelay        (TApp),
+      .AcqDelay         (TAcq)
   ) i_obi_sim_mem (
       .clk_i      (clk),
       .rst_ni     (rst_n),
@@ -359,14 +381,6 @@ module tb_ip_vga;
 
       .test_mode_en_i(1'b0),
 
-      // Regbus config ports
-      .reg_req_i(ip_vga_regs_req),
-      .reg_rsp_o(ip_vga_regs_rsp),
-      //
-      // // AXI Data ports
-      // .axi_req_o (vga_axi_req),
-      // .axi_rsp_i(vga_axi_rsp),
-
       // VGA interface
       .hsync_o(),
       .vsync_o(),
@@ -374,6 +388,9 @@ module tb_ip_vga;
       .green_o(),
       .blue_o (),
 
+      // Regbus config ports
+      .reg_req_i(ip_vga_regs_req),
+      .reg_rsp_o(ip_vga_regs_rsp),
       .obi_req_o(ip_vga_tb_req),
       .obi_rsp_i(ip_vga_tb_rsp),
 
