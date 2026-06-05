@@ -90,7 +90,7 @@ module tb_ip_vga;
 
     repeat (10) @(posedge clk);
 
-    $display("Setting VGA_EN");
+    $display("Setting VGA_EN 0");
     #TApp;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_EN_OFFSET;
@@ -192,7 +192,15 @@ module tb_ip_vga;
     ip_vga_regs_req.a.wdata = VertBackPorchSize;
 
     @(posedge clk);
-    $display("Setting VGA_EN");
+    $display("Setting FSM_EN");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = FSM_EN_OFFSET;
+    ip_vga_regs_req.a.be = 1'h1;
+    ip_vga_regs_req.a.wdata = 1;
+
+    @(posedge clk);
+    $display("Setting VGA_EN 1");
     #TApp;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_EN_OFFSET;

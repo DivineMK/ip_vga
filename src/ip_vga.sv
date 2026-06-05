@@ -47,11 +47,15 @@ module ip_vga
 );
   logic timing_ready;
   ip_vga_reg2hw_t reg2hw;
+  (* keep *) logic vga_en;
+
+  logic [7:0]  font_wr_addr;
+  logic [63:0] font_wr_data;
+  logic [7:0]  font_wr_be;
+  logic        font_wr_req;
 
   logic [7:0] clk_div;
   logic [7:0] clk_cnt_d, clk_cnt_q;
-
-  // ip_vga_reg_pkg::axi_vga_reg2hw_t reg2hw;
 
   logic [  RedWidth-1:0] red;
   logic [GreenWidth-1:0] green;
@@ -63,6 +67,8 @@ module ip_vga
   // Cycle counter to scale the incoming clock
   assign clk_cnt_d = (clk_cnt_q < (clk_div - 1)) ? clk_cnt_q + 8'b0000_0001 : 8'b0;
 
+  assign vga_en = reg2hw.vga_en;
+
   // Registers
   ip_vga_regs #(
       .obi_req_t(reg_req_t),
@@ -72,7 +78,11 @@ module ip_vga
       .rst_ni   (rst_ni),
       .obi_req_i(reg_req_i),
       .obi_rsp_o(reg_rsp_o),
-      .reg2hw_o (reg2hw)
+      .reg2hw_o (reg2hw),
+      .font_wr_req_o (font_wr_req),
+      .font_wr_addr_o(font_wr_addr),
+      .font_wr_data_o(font_wr_data),
+      .font_wr_be_o  (font_wr_be)
   );
 
   // FSM managing the VGA signals
@@ -94,7 +104,7 @@ module ip_vga
       .red_i  (red),
       .green_i(green),
       .blue_i (blue),
-      .valid_i('1), // not used
+      .valid_i('1),
       .ready_o(timing_ready),
 
       // Interrupts
@@ -126,6 +136,11 @@ module ip_vga
 
       .obi_req_o,
       .obi_rsp_i,
+
+      .font_wr_req_i (font_wr_req),
+      .font_wr_addr_i(font_wr_addr),
+      .font_wr_data_i(font_wr_data),
+      .font_wr_be_i  (font_wr_be),
 
       .red_o  (red),
       .green_o(green),
