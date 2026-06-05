@@ -2,10 +2,17 @@
 
 A free and open-source, fully synthesizable VGA text mode controller.
 
+## Caveats
+
+- Monochrome only — color attributes are not supported.
+- Attribute bits for cursor rendering are not processed.
+- Font size is fixed to 8x8 pixels.
+
 ## Authors
 
-- Nicole Narr \<narrn@student.ethz.ch\>
-- Christopher Reinwardt \<creinwar@student.ethz.ch\>
+- Khanh Lo \<khanlo@student.ethz.ch\>
+
+This project builds on PULP's [`axi_vga`](https://github.com/pulp-platform/axi_vga).
 
 ## Structure
 
