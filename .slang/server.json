@@ -1,0 +1,5 @@
+{
+  "flags": "--top tb_ip_vga",
+  "build": "verilator/ip_vga.f",
+  "buildRelativePaths": true
+}

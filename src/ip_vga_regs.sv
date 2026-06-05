@@ -89,6 +89,16 @@ module ip_vga_regs
     tb_addr_d = tb_addr_q;
     clk_div_d = clk_div_q;
     vga_en_d  = vga_en_q;
+    vga_hsync_pol_d = vga_hsync_pol_q;
+    vga_vsync_pol_d = vga_vsync_pol_q;
+    vga_line_width_d = vga_line_width_q;
+    vga_line_height_d = vga_line_height_q;
+    vga_horz_front_porch_d = vga_horz_front_porch_q;
+    vga_horz_sync_d = vga_horz_sync_q;
+    vga_horz_back_porch_d = vga_horz_back_porch_q;
+    vga_vert_front_porch_d = vga_vert_front_porch_q;
+    vga_vert_sync_d = vga_vert_sync_q;
+    vga_vert_back_porch_d = vga_vert_back_porch_q;
 
     if (obi_req_i.req && obi_req_i.a.we) begin
       unique case ({

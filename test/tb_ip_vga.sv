@@ -17,25 +17,8 @@ module tb_ip_vga;
   localparam int unsigned ClkPeriod = 20ns;
   localparam int unsigned TApp = ClkPeriod * 0.3;
   localparam int unsigned TAcq = ClkPeriod * 0.8;
-
-  // // AXI parameters
-  // localparam int unsigned AXIAddrWidth = 48;
-  // localparam int unsigned AXIDataWidth = 64;
-  // localparam int unsigned AXIStrbWidth = 8;
-  // localparam int unsigned AXIIdWidth = 2;
-  // localparam int unsigned AXIUserWidth = 1;
-  //
-  // // Buffer
-  // localparam int unsigned BufferDepth = 16;
-  // localparam int unsigned MaxReadTxns = 24;
   // Mem Depth
   localparam int unsigned NoCuts = 8;
-  //
-  // // RegBus parameters
-  // localparam int unsigned RegBusAddrWidth = 48;
-  // localparam int unsigned RegBusDataWidth = 32;
-  // localparam int unsigned RegBusStrbWidth = 4;
-
   logic clk, rst_n;
 
   clk_rst_gen #(
@@ -106,13 +89,13 @@ module tb_ip_vga;
     ip_vga_regs_req.a.wdata = 32'h0;
 
     repeat (10) @(posedge clk);
-    $display("Setting VGA_EN");
+
+    $display("Setting TB_ADDR");
     #TApp;
     ip_vga_regs_req.req = 1;
-    ip_vga_regs_req.a.addr = VGA_EN_OFFSET;
-    ip_vga_regs_req.a.be = 4'h1;
-    ip_vga_regs_req.a.wdata = 32'h1;
-
+    ip_vga_regs_req.a.addr = TB_ADDR_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h0;
     @(posedge ip_vga_regs_rsp.rvalid);
     $display("Setting CLK_DIV");
     #TApp;
@@ -122,12 +105,92 @@ module tb_ip_vga;
     ip_vga_regs_req.a.wdata = 32'h2;
 
     @(posedge clk);
-    $display("Setting TB_ADDR");
+    $display("Setting VGA_HSYNC_POL");
     #TApp;
     ip_vga_regs_req.req = 1;
-    ip_vga_regs_req.a.addr = TB_ADDR_OFFSET;
-    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.addr = VGA_HSYNC_POL_OFFSET;
+    ip_vga_regs_req.a.be = 4'h1;
     ip_vga_regs_req.a.wdata = 32'h0;
+
+    @(posedge clk);
+    $display("Setting VGA_VSYNC_POL");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_VSYNC_POL_OFFSET;
+    ip_vga_regs_req.a.be = 4'h1;
+    ip_vga_regs_req.a.wdata = 32'h0;
+
+    @(posedge clk);
+    $display("Setting VGA_LINE_WIDTH");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_LINE_WIDTH_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'd80;
+
+    @(posedge clk);
+    $display("Setting VGA_LINE_HEIGHT");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_LINE_HEIGHT_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'd25;
+
+    @(posedge clk);
+    $display("Setting VGA_HORZ_FRONT_PORCH");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_HORZ_FRONT_PORCH_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h10;
+
+    @(posedge clk);
+    $display("Setting VGA_HORZ_SYNC");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_HORZ_SYNC_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h60;
+
+    @(posedge clk);
+    $display("Setting VGA_HORZ_BACK_PORCH");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_HORZ_BACK_PORCH_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h30;
+
+    @(posedge clk);
+    $display("Setting VGA_VERT_FRONT_PORCH");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_VERT_FRONT_PORCH_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h0A;
+
+    @(posedge clk);
+    $display("Setting VGA_VERT_SYNC");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_VERT_SYNC_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h02;
+
+    @(posedge clk);
+    $display("Setting VGA_VERT_BACK_PORCH");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_VERT_BACK_PORCH_OFFSET;
+    ip_vga_regs_req.a.be = 4'hF;
+    ip_vga_regs_req.a.wdata = 32'h21;
+
+    @(posedge clk);
+    $display("Setting VGA_EN");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_EN_OFFSET;
+    ip_vga_regs_req.a.be = 4'h1;
+    ip_vga_regs_req.a.wdata = 32'h1;
     @(posedge clk);
 
     #TApp;
@@ -298,11 +361,11 @@ module tb_ip_vga;
   // );
 
   initial begin : textbuffer_init
-    for (logic [15:0] i = 0; i < LineCharHeight; i += 1) begin
-      for (logic [15:0] j = 0; j < LineCharWidth / 2; j += 1) begin
-        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+0] = {i[0], j[0]};
+    for (bit [15:0] i = 0; i < LineCharHeight; i += 1) begin
+      for (bit [15:0] j = 0; j < LineCharWidth / 2; j += 1) begin
+        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+0] = {6'h0, i[0], j[0]};
         i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+1] = 8'h00;
-        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+2] = {j[0], i[0]};
+        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+2] = {6'h0, j[0], i[0]};
         i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+3] = 8'h00;
       end
     end
@@ -313,7 +376,7 @@ module tb_ip_vga;
       .obi_req_t        (ip_vga_tb_obi_req_t),
       .obi_rsp_t        (ip_vga_tb_obi_rsp_t),
       .obi_r_chan_t     (ip_vga_tb_obi_r_chan_t),
-      .WarnUninitialized('1),
+      .WarnUninitialized('0),
       .ClearErrOnAccess ('0),                         // not used
       .ApplDelay        (TApp),
       .AcqDelay         (TAcq)
