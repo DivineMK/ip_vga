@@ -34,10 +34,12 @@ module ip_vga_fetcher #(
       textbuffer_linebuf_q;  // line buffer for fetching char code from text buffer (TB)
   logic [1:0][FontWidth-1:0]
       bitmap_buffer_d, bitmap_buffer_q;  // bitmap buffer for fetching from font
-  logic [31:0] pixel_horz_q, pixel_horz_d, pixel_vert_q, pixel_vert_d;  // coordinate in pixel unit
-  logic [28:0] char_horz;  // coordinate in char unit
+  logic [$clog2(LineCharWidth*FontWidth)-1:0] pixel_horz_q, pixel_horz_d;
+  logic [$clog2(LineCharHeight*FontHeight)-1:0]
+      pixel_vert_q, pixel_vert_d;  // coordinate in pixel unit
+  logic [$clog2(LineCharWidth)-1:0] char_horz;  // coordinate in char unit
 
-  assign char_horz = pixel_horz_q >> $clog2(FontWidth);
+  assign char_horz = pixel_horz_q[$clog2(LineCharWidth*FontWidth)-1:$clog2(FontWidth)];
 
   // font request
   logic [$bits(reg2hw_i.vga_line_width)-1:0]
@@ -52,17 +54,11 @@ module ip_vga_fetcher #(
   logic [$clog2(TBSize)-1:0]
       tb_req_idx_d, tb_req_idx_q;  // index for request from TB and write to textbuffer_linebuf
   obi_req_t obi_tb_req;
-  logic [31:0] tb_vert_q, tb_vert_d;  // coordinate for request from TB, in char unit vertically
+  logic [$clog2(LineCharHeight)-1:0]
+      tb_vert_q, tb_vert_d;  // coordinate for request from TB, in char unit vertically
   // TB response
   obi_rsp_t obi_tb_rsp;
   logic tb_valid;
-
-  typedef enum logic {
-    FONT_REQ,
-    FONT_IDLE
-  } font_state_t;
-
-  font_state_t font_state_q, font_state_d;
 
   typedef enum logic [1:0] {
     TB_LAST,
@@ -112,91 +108,80 @@ module ip_vga_fetcher #(
     textbuffer_linebuf_d = textbuffer_linebuf_q;
     tb_req_idx_d = tb_req_idx_q;
     tb_vert_d = tb_vert_q;
-    obi_tb_req.a.addr[AddrWidth-1:2] = reg2hw_i.tb_addr[AddrWidth-1:2] + tb_vert_q * (LineCharWidth/2) 
-                + (LineCharWidth/2 - 1 - tb_req_idx_q); // tb_req_idx is down counting, tb_req is up counting
-    obi_tb_req.req = '0;  // default to prefetch
+    // NOTE: tb_req_idx is down counting, tb_req is up counting
+    // font_req = textbuffer_linebuf_q[font_req_idx_q][7:0];
+    obi_tb_req.a.addr[AddrWidth-1:2] = reg2hw_i.tb_addr[AddrWidth-1:2] + tb_vert_q * (reg2hw_i.vga_line_width/2) 
+                + (reg2hw_i.vga_line_width/2 - 1 - tb_req_idx_q);
+    obi_tb_req.req = '0;
 
-    unique case (tb_state_q)
-      TB_REQ: begin
-        // receive response and set new request addr
-        if (tb_valid) begin
-          textbuffer_linebuf_d[tb_req_idx_q*2+:2] = obi_tb_rsp.r.rdata;
-          obi_tb_req.req = '0;
-          // when finished prefetching line
-          if (tb_req_idx_q == 0) begin
-            tb_state_d = TB_LAST;
-          end else begin
-            // tb_rsp contains 2 char code
-            tb_state_d   = TB_IDLE;
-            tb_req_idx_d = tb_req_idx_q - 1;
+    if (reg2hw_i.vga_en) begin
+      unique case (tb_state_q)
+        TB_REQ: begin
+          // receive response and set new request addr
+          if (tb_valid) begin
+            // tb_rsp contains 2 char code for textbuffer_linebuf
+            textbuffer_linebuf_d[tb_req_idx_q*2+:2] = obi_tb_rsp.r.rdata;
+            obi_tb_req.req = '0;
+            // when finished prefetching line
+            if (tb_req_idx_q == 0) begin
+              tb_state_d = TB_LAST;
+            end else begin
+              tb_state_d   = TB_IDLE;
+              tb_req_idx_d = tb_req_idx_q - 1;
+            end
           end
         end
-      end
 
-      TB_IDLE: begin
-        // issue request
-        obi_tb_req.req = '1;
-        tb_state_d = TB_REQ;
-      end
-
-      TB_LAST: begin
-        // wait after filling last request for line buffer
-        // TODO: make condition to start prefetching next line configurable
-        if (pixel_horz_q == 'd2 && pixel_vert_q[FontHeightLog-1:0] == 'd0) begin
-          tb_state_d = TB_IDLE;
-          tb_req_idx_d = LineCharWidth / 2 - 1;
-          tb_vert_d = (tb_vert_q == LineCharHeight - 1) ? '0 : tb_vert_q + 1;
-        end else begin
-          tb_state_d = TB_LAST;
-          tb_req_idx_d = tb_req_idx_q;
-          tb_vert_d = tb_vert_q;
+        TB_IDLE: begin
+          // issue request
+          obi_tb_req.req = '1;
+          tb_state_d = TB_REQ;
         end
-      end
-      // vsim warning
-      default: begin
-        tb_state_d = TB_REQ;
-        obi_tb_req.req = '0;
-        tb_req_idx_d = LineCharWidth / 2 - 1;
-      end
-    endcase
+
+        TB_LAST: begin
+          // wait after last request for line buffer
+          // TODO: make condition to start prefetching next line configurable
+          if (pixel_horz_q == 'd2 && pixel_vert_q[FontHeightLog-1:0] == 'd0) begin
+            tb_state_d = TB_IDLE;
+            tb_req_idx_d = reg2hw_i.vga_line_width / 2 - 1;
+            tb_vert_d = (tb_vert_q == reg2hw_i.vga_line_height - 1) ? '0 : tb_vert_q + 1;
+          end else begin
+            tb_state_d = TB_LAST;
+            tb_req_idx_d = tb_req_idx_q;
+            tb_vert_d = tb_vert_q;
+          end
+        end
+        // vsim warning
+        default: begin
+          tb_state_d = TB_IDLE;
+          obi_tb_req.req = '1;
+        end
+      endcase
+    end
   end
 
   // request from font into bitmap_buffer
   always_comb begin : font_fsm
     font_req = textbuffer_linebuf_q[font_req_idx_q][7:0];
     font_req_idx_d = font_req_idx_q;
-    font_state_d = font_state_q;
     font_sel_d = font_sel_q;
     bitmap_buffer_d = bitmap_buffer_q;
 
-    unique case (font_state_q)
-      FONT_REQ: begin
-        // receive response and set new request
-        bitmap_buffer_d[font_req_idx_q[0]] = font_rsp[font_sel_q*FontWidth+:FontWidth];
-        // switch to FONT_REQ to prefetch 1 cycle before last pixel of char start
-        // 1 cycle for req_idx_q to change, 1 cycle for font to response
-        // depend on clk_div
-        if (pixel_horz_q[2:0] == 1 && pixel_horz_d[2:0] == 0) begin
-          // at end of line
-          if (char_horz == 0) begin
-            font_sel_d = pixel_vert_q[2:0] - 1;  // move font_sel to next char vertically
-            font_req_idx_d = LineCharWidth - 1;
-          end else begin
-            font_sel_d = pixel_vert_q[2:0];
-            font_req_idx_d = char_horz - 1;  // prefetch next char horizontally
-          end
-        end
+    // receive response and set new request
+    bitmap_buffer_d[font_req_idx_q[0]] = font_rsp[font_sel_q*FontWidth+:FontWidth];
+    // switch to FONT_REQ to prefetch 1 cycle before last pixel of char start
+    // 1 cycle for req_idx_q to change, 1 cycle for font to response
+    // depend on clk_div
+    if (pixel_horz_q[FontWidthLog-1:0] == 1 && pixel_horz_d[FontWidthLog-1:0] == 0) begin
+      // at end of line
+      if (char_horz == 0) begin
+        font_sel_d = pixel_vert_q[FontWidthLog-1:0] - 1;  // move font_sel to next char vertically
+        font_req_idx_d = reg2hw_i.vga_line_width - 1;
+      end else begin
+        font_sel_d = pixel_vert_q[FontWidthLog-1:0];
+        font_req_idx_d = char_horz - 1;  // prefetch next char horizontally
       end
-
-      FONT_IDLE: begin
-        font_state_d = FONT_REQ;
-      end
-
-      default: begin
-        font_req_idx_d = LineCharWidth - 1;
-        font_state_d   = FONT_IDLE;
-      end
-    endcase
+    end
   end
 
   // use bitmap_buffer to get current pixel bitmap
@@ -209,7 +194,6 @@ module ip_vga_fetcher #(
       pixel_vert_q <= VertVisibleSize - 1;
 
       font_req_idx_q <= reg2hw_i.vga_line_width - 1;
-      font_state_q <= FONT_IDLE;
       font_sel_q <= FontHeight - 1;
       bitmap_buffer_q <= '0;
 
@@ -222,7 +206,6 @@ module ip_vga_fetcher #(
       pixel_vert_q <= pixel_vert_d;
 
       font_req_idx_q <= font_req_idx_d;
-      font_state_q <= font_state_d;
       font_sel_q <= font_sel_d;
       bitmap_buffer_q <= bitmap_buffer_d;
 
