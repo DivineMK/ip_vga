@@ -1,9 +1,10 @@
-// Copyright 2025 ETH Zurich and University of Bologna.
+// Copyright 2025, 2026 ETH Zurich and University of Bologna.
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
 // Authors:
 // - Enrico Zelioli <ezelioli@iis.ee.ethz.ch>
+// - Khanh Lo <khanlo@student.ethz.ch>
 
 package ip_vga_regs_pkg;
   typedef struct packed {

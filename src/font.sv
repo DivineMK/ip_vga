@@ -1,3 +1,9 @@
+// Copyright 2026 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Khanh Lo <khanlo@student.ethz.ch>
+
 module font #(
     parameter int unsigned FontSize = 256,
     parameter int unsigned FontAddrWidth = $clog2(FontSize),

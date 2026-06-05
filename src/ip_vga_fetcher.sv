@@ -1,6 +1,8 @@
-// Copyright 2022 ETH Zurich and University of Bologna.
+// Copyright 2022, 2026 ETH Zurich and University of Bologna.
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
+//
+// Khanh Lo <khanlo@student.ethz.ch>
 
 module ip_vga_fetcher #(
     parameter obi_pkg::obi_cfg_t ObiCfg          = obi_pkg::ObiDefaultConfig,
@@ -83,7 +85,7 @@ module ip_vga_fetcher #(
   logic tb_valid;
 
   typedef enum logic [1:0] {
-    TB_LAST,
+    TB_WAIT,
     TB_RSP,
     TB_REQ
   } tb_state_t;
@@ -155,7 +157,7 @@ module ip_vga_fetcher #(
             obi_tb_req.req = 0;
             // when finished prefetching line
             if (tb_req_idx_q == 0) begin
-              tb_state_d = TB_LAST;
+              tb_state_d = TB_WAIT;
             end else begin
               tb_state_d   = TB_REQ;
               tb_req_idx_d = tb_req_idx_q - 1;
@@ -170,7 +172,7 @@ module ip_vga_fetcher #(
           if (obi_tb_rsp.gnt) tb_state_d = TB_RSP;
         end
 
-        TB_LAST: begin
+        TB_WAIT: begin
           // wait after last request (at the end of line) for line buffer
           // TODO: make condition to start prefetching next line configurable
           if (pixel_horz_q == 'd2 && pixel_vert_q[FontHeightLog-1:0] == 'd0) begin
@@ -185,7 +187,7 @@ module ip_vga_fetcher #(
                 tb_req_addr_d = reg2hw_i.tb_addr[AddrWidth-1:2];
             end
           end else begin
-            tb_state_d = TB_LAST;
+            tb_state_d = TB_WAIT;
             tb_req_idx_d = tb_req_idx_q;
             tb_vert_d = tb_vert_q;
           end

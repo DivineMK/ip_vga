@@ -1,3 +1,9 @@
+// Copyright 2026 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Khanh Lo <khanlo@student.ethz.ch>
+
 package ip_vga_config_pkg;
   // This file determines the MAXIMUM possible bitwidth for these parameters
   // NOTE: currently not configurable

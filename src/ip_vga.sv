@@ -1,10 +1,11 @@
-// Copyright 2022 ETH Zurich and University of Bologna.
+// Copyright 2022, 2026 ETH Zurich and University of Bologna.
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
 // Nicole Narr <narrn@student.ethz.ch>
 // Christopher Reinwardt <creinwar@student.ethz.ch>
 // Thomas Benz <tbenz@iis.ee.ethz.ch>
+// Khanh Lo <khanlo@student.ethz.ch>
 
 /// Simple VGA IP capable of drawing frames from an external framebuffer.
 module ip_vga
