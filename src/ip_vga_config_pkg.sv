@@ -31,7 +31,7 @@ package ip_vga_config_pkg;
   localparam int unsigned VertSyncSize = 32'h00000002;
 
   localparam int unsigned ClkDiv = 2;
-  localparam logic ControlEnable = 1;
+  // localparam logic ControlEnable = 1;
   localparam logic ControlHsyncPol = 0;
   localparam logic ControlVsyncPol = 0;
 endpackage

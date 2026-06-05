@@ -90,13 +90,20 @@ module tb_ip_vga;
 
     repeat (10) @(posedge clk);
 
+    $display("Setting VGA_EN");
+    #TApp;
+    ip_vga_regs_req.req = 1;
+    ip_vga_regs_req.a.addr = VGA_EN_OFFSET;
+    ip_vga_regs_req.a.be = 4'h1;
+    ip_vga_regs_req.a.wdata = 'h0;
+    @(posedge ip_vga_regs_rsp.rvalid);
     $display("Setting TB_ADDR");
     #TApp;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = TB_ADDR_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
     ip_vga_regs_req.a.wdata = 32'h0;
-    @(posedge ip_vga_regs_rsp.rvalid);
+    @(posedge clk);
     $display("Setting CLK_DIV");
     #TApp;
     ip_vga_regs_req.req = 1;
@@ -126,7 +133,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_LINE_WIDTH_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'd80;
+    ip_vga_regs_req.a.wdata = LineCharWidth;
 
     @(posedge clk);
     $display("Setting VGA_LINE_HEIGHT");
@@ -134,7 +141,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_LINE_HEIGHT_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'd25;
+    ip_vga_regs_req.a.wdata = LineCharHeight;
 
     @(posedge clk);
     $display("Setting VGA_HORZ_FRONT_PORCH");
@@ -142,7 +149,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_HORZ_FRONT_PORCH_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'h10;
+    ip_vga_regs_req.a.wdata = HoriFrontPorchSize;
 
     @(posedge clk);
     $display("Setting VGA_HORZ_SYNC");
@@ -150,7 +157,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_HORZ_SYNC_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'h60;
+    ip_vga_regs_req.a.wdata = HoriSyncSize;
 
     @(posedge clk);
     $display("Setting VGA_HORZ_BACK_PORCH");
@@ -158,7 +165,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_HORZ_BACK_PORCH_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'h30;
+    ip_vga_regs_req.a.wdata = HoriBackPorchSize;
 
     @(posedge clk);
     $display("Setting VGA_VERT_FRONT_PORCH");
@@ -166,7 +173,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_VERT_FRONT_PORCH_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'h0A;
+    ip_vga_regs_req.a.wdata = VertFrontPorchSize;
 
     @(posedge clk);
     $display("Setting VGA_VERT_SYNC");
@@ -174,7 +181,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_VERT_SYNC_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'h02;
+    ip_vga_regs_req.a.wdata = VertSyncSize;
 
     @(posedge clk);
     $display("Setting VGA_VERT_BACK_PORCH");
@@ -182,7 +189,7 @@ module tb_ip_vga;
     ip_vga_regs_req.req = 1;
     ip_vga_regs_req.a.addr = VGA_VERT_BACK_PORCH_OFFSET;
     ip_vga_regs_req.a.be = 4'hF;
-    ip_vga_regs_req.a.wdata = 32'h21;
+    ip_vga_regs_req.a.wdata = VertBackPorchSize;
 
     @(posedge clk);
     $display("Setting VGA_EN");
@@ -269,7 +276,8 @@ module tb_ip_vga;
 
     wait (rst_n === 0);
     @(posedge rst_n);
-    @(negedge i_ip_vga.vsync_o);  // sync capturing on first vsync
+    @(posedge i_ip_vga.reg2hw.vga_en);
+    @(edge i_ip_vga.vsync_o);  // sync capturing on first vsync
     forever begin
       // before the divided clock, capture the previous values
       if (clk_div_counter == '0) begin
