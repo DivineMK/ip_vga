@@ -1,4 +1,6 @@
 package ip_vga_config_pkg;
+  // This file determines the MAXIMUM possible bitwidth for these parameters
+  // NOTE: currently not configurable
   localparam int unsigned FontSize = 256;
   localparam int unsigned FontWidth = 8;
   localparam int unsigned FontHeight = 8;
@@ -7,6 +9,7 @@ package ip_vga_config_pkg;
   localparam int unsigned FontHeightLog = $clog2(FontHeight);
   localparam int unsigned FontDataWidth = 64;  // font word size
 
+  // NOTE: configurable
   localparam int unsigned LineCharWidth = 80;
   localparam int unsigned LineCharHeight = 25;
 
