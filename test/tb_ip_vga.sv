@@ -371,10 +371,10 @@ module tb_ip_vga;
   initial begin : textbuffer_init
     for (bit [15:0] i = 0; i < LineCharHeight; i += 1) begin
       for (bit [15:0] j = 0; j < LineCharWidth / 2; j += 1) begin
-        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+0] = {6'h0, i[0], j[0]};
-        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+1] = 8'h00;
-        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+2] = {6'h0, j[0], i[0]};
-        i_obi_sim_mem.mem[((i+0)*LineCharWidth/2+j)*4+3] = 8'h00;
+        i_obi_sim_mem.mem[(i*LineCharWidth/2+j)*4+0] = {6'h0, i[0], j[0]};
+        i_obi_sim_mem.mem[(i*LineCharWidth/2+j)*4+1] = 8'h00;
+        i_obi_sim_mem.mem[(i*LineCharWidth/2+j)*4+2] = {6'h0, j[0], i[0]};
+        i_obi_sim_mem.mem[(i*LineCharWidth/2+j)*4+3] = 8'h00;
       end
     end
   end

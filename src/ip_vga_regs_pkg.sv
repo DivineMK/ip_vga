@@ -6,22 +6,24 @@
 // - Enrico Zelioli <ezelioli@iis.ee.ethz.ch>
 
 package ip_vga_regs_pkg;
+  localparam int unsigned ConfigWidth = 8;
+
   typedef struct packed {
     logic [31:0] tb_addr;
-    logic [7:0] clk_div;
+    logic [ConfigWidth-1:0] clk_div;
     logic vga_en;
     logic vga_hsync_pol;
     logic vga_vsync_pol;
-    logic [7:0] vga_line_width;
-    logic [7:0] vga_line_height;
+    logic [ConfigWidth-1:0] vga_line_width;
+    logic [ConfigWidth-1:0] vga_line_height;
 
-    logic [7:0] vga_horz_front_porch;
-    logic [7:0] vga_horz_sync;
-    logic [7:0] vga_horz_back_porch;
+    logic [ConfigWidth-1:0] vga_horz_front_porch;
+    logic [ConfigWidth-1:0] vga_horz_sync;
+    logic [ConfigWidth-1:0] vga_horz_back_porch;
 
-    logic [7:0] vga_vert_front_porch;
-    logic [7:0] vga_vert_sync;
-    logic [7:0] vga_vert_back_porch;
+    logic [ConfigWidth-1:0] vga_vert_front_porch;
+    logic [ConfigWidth-1:0] vga_vert_sync;
+    logic [ConfigWidth-1:0] vga_vert_back_porch;
   } ip_vga_reg2hw_t;
 
   // Internal address width. 5 bits covers offsets 0x00–0x1C (8 word-aligned registers).
