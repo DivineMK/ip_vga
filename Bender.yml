@@ -12,9 +12,8 @@ package:
     - "Christopher Reinwardt <creinwar@student.ethz.ch>"
 
 dependencies:
-  obi:                  { git: "https://github.com/pulp-platform/obi.git",                  rev: 6a724da    } # 0.1.7+
-  common_cells: { git: "https://github.com/pulp-platform/common_cells", version: 1.33.0 }
-  register_interface : { git: "https://github.com/pulp-platform/register_interface", version: 0.4.2 }
+  obi:                 { git: "https://github.com/pulp-platform/obi.git", rev: 6a724da } # 0.1.7+
+  common_cells:        { git: "https://github.com/pulp-platform/common_cells", version: 1.39.0 }
 
 sources:
   - src/ip_vga_config_pkg.sv
