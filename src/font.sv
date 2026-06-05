@@ -1,6 +1,6 @@
 import ip_vga_config_pkg::*;
 
-module font_rom #(
+module font #(
     parameter int unsigned FontSize = FontSize,
     parameter int unsigned FontAddrWidth = $clog2(FontSize),
     parameter int unsigned FontWidth = FontWidth,
@@ -9,8 +9,8 @@ module font_rom #(
 ) (
     input  logic                     clk_i,
     input  logic                     rst_ni,
-    input  logic [FontAddrWidth-1:0] req_addr_i,
-    output logic [FontDataWidth-1:0] rsp_data_o
+    input  logic [FontAddrWidth-1:0] font_req_i,
+    output logic [FontDataWidth-1:0] font_rsp_o
 );
 
   logic [FontSize-1:0][FontDataWidth-1:0] font;
@@ -64,8 +64,8 @@ module font_rom #(
     end
   end
 
-  assign req_d = req_addr_i;
-  assign rsp_data_o = font[req_q];
+  assign req_d = font_req_i;
+  assign font_rsp_o = font[req_q];
 
   always_ff @(posedge clk_i, negedge rst_ni) begin : ff
     if (~rst_ni) begin

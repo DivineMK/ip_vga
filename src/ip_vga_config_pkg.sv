@@ -22,7 +22,7 @@ package ip_vga_config_pkg;
 
   localparam int unsigned HoriVisibleSize = FrameWidth;
   localparam int unsigned HoriFrontPorchSize = 32'h00000010;
-  localparam int unsigned HoriBackPorchSize = 32'h00000060;
+  localparam int unsigned HoriBackPorchSize = 32'h00000030;
   localparam int unsigned HoriSyncSize = 32'h00000060;
 
   localparam int unsigned VertVisibleSize = FrameHeight;

@@ -21,7 +21,7 @@ sources:
   - src/ip_vga_regs_pkg.sv
   - src/ip_vga_regs.sv
   - src/ip_vga_timing_fsm.sv
-  - src/font_rom.sv
+  - src/font.sv
   - src/text_buffer.sv
   - src/ip_vga_fetcher.sv
   - src/ip_vga.sv

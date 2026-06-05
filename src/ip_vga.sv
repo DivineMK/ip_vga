@@ -7,7 +7,9 @@
 // Thomas Benz <tbenz@iis.ee.ethz.ch>
 
 /// Simple VGA IP capable of drawing frames from an external framebuffer.
-module ip_vga import ip_vga_regs_pkg::*; #(
+module ip_vga
+  import ip_vga_regs_pkg::ip_vga_reg2hw_t;
+#(
     parameter obi_pkg::obi_cfg_t ObiCfg      = obi_pkg::ObiDefaultConfig,
     parameter int unsigned       RedWidth    = 5,
     parameter int unsigned       GreenWidth  = 6,
@@ -43,8 +45,6 @@ module ip_vga import ip_vga_regs_pkg::*; #(
     output logic [GreenWidth-1:0] green_o,
     output logic [ BlueWidth-1:0] blue_o
 );
-  import ip_vga_config_pkg::*;
-
   logic timing_ready;
   ip_vga_reg2hw_t reg2hw;
 
@@ -65,14 +65,14 @@ module ip_vga import ip_vga_regs_pkg::*; #(
 
   // Registers
   ip_vga_regs #(
-      .obi_req_t(obi_req_t),
-      .obi_rsp_t(obi_rsp_t)
-  ) ip_vga_regs (
+      .obi_req_t(reg_req_t),
+      .obi_rsp_t(reg_rsp_t)
+  ) i_ip_vga_regs (
       .clk_i    (clk_i),
       .rst_ni   (rst_ni),
       .obi_req_i(reg_req_i),
       .obi_rsp_o(reg_rsp_o),
-      .reg2hw_o(reg2hw)
+      .reg2hw_o (reg2hw)
   );
 
   // FSM managing the VGA signals
@@ -81,20 +81,20 @@ module ip_vga import ip_vga_regs_pkg::*; #(
       .GreenWidth (GreenWidth),
       .BlueWidth  (BlueWidth),
       .HCountWidth(HCountWidth),
-      .VCountWidth(VCountWidth)
+      .VCountWidth(VCountWidth),
+      .ip_vga_reg2hw_t(ip_vga_reg2hw_t)
   ) i_ip_vga_timing_fsm (
       .clk_i,
       .rst_ni,
 
       .fsm_en_i(clk_cnt_q == 0),
-      .vga_en_i(reg2hw.vga_en),
-      // .reg2hw_i(reg2hw),
+      .reg2hw_i(reg2hw),
 
       // Data input
       .red_i  (red),
       .green_i(green),
       .blue_i (blue),
-      .valid_i('1),
+      .valid_i('1), // not used
       .ready_o(timing_ready),
 
       // Interrupts
@@ -110,18 +110,18 @@ module ip_vga import ip_vga_regs_pkg::*; #(
   );
 
   ip_vga_fetcher #(
-      .ObiCfg    (ObiCfg),
-      .RedWidth  (RedWidth),
-      .GreenWidth(GreenWidth),
-      .BlueWidth (BlueWidth),
-      .obi_req_t (obi_req_t),
-      .obi_rsp_t (obi_rsp_t)
+      .ObiCfg         (ObiCfg),
+      .RedWidth       (RedWidth),
+      .GreenWidth     (GreenWidth),
+      .BlueWidth      (BlueWidth),
+      .obi_req_t      (obi_req_t),
+      .obi_rsp_t      (obi_rsp_t),
+      .ip_vga_reg2hw_t(ip_vga_reg2hw_t)
   ) i_ip_vga_fetcher (
       .clk_i,
       .rst_ni,
 
-      .vga_en_i(reg2hw.vga_en),
-      .tb_addr_i(reg2hw.tb_addr),
+      .reg2hw_i(reg2hw),
       .timing_ready_i(timing_ready),
 
       .obi_req_o,
