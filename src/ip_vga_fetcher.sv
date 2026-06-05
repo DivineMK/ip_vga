@@ -103,8 +103,8 @@ module ip_vga_fetcher #(
   assign obi_req_o = obi_tb_req;
   assign obi_tb_rsp = obi_rsp_i;
   assign tb_valid = obi_tb_rsp.rvalid;  // output from tb valid and ready for new request
-  assign obi_tb_req.a.we = '0;  // read only
-  assign obi_tb_req.a.aid = '0;  // TB id
+  //assign obi_tb_req.a.we = '0;  // read only
+  //assign obi_tb_req.a.aid = '0;  // TB id
 
   always_comb begin : pixel_fsm
     pixel_horz_d = pixel_horz_q;
@@ -129,6 +129,7 @@ module ip_vga_fetcher #(
     tb_vert_d = tb_vert_q;
     // NOTE: tb_req_idx is down counting, tb_req is up counting
     // font_req = textbuffer_linebuf_q[font_req_idx_q][7:0];
+    obi_tb_req = '0
     obi_tb_req.a.addr[AddrWidth-1:2] = reg2hw_i.tb_addr[AddrWidth-1:2] + tb_vert_q * (vga_line_width/2) 
                 + (vga_line_width/2 - 1 - tb_req_idx_q);
     obi_tb_req.req = '0;
@@ -155,7 +156,7 @@ module ip_vga_fetcher #(
           // issue request
           obi_tb_req.req = '1;
           if (obi_tb_rsp.gnt)
-          tb_state_d = TB_RSP;
+            tb_state_d = TB_RSP;
         end
 
         TB_LAST: begin
